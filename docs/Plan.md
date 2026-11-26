@@ -18,7 +18,7 @@ Decisions so far:
 | --- | --- |
 | Delivery | PWA installed to the iPhone home screen. No Apple developer account, no 7-day re-signing. |
 | Backend | PocketBase (one Docker container, SQLite) on TrueNAS |
-| Remote access | Tailscale (already set up). Only your signed-in devices can reach the server, and nothing is open to the internet. |
+| Remote access | Home network at `http://10.0.0.200:8090`, and away from home over Tailscale (HTTPS). Nothing is open to the internet. Every collection needs a login. |
 | Offline | Phone stores everything locally (IndexedDB) and syncs when online |
 | Units | lb for every weight. The gym has no kg plates. The unit is shown on every weight. |
 | 1RMs | Entered by hand, plus an automatic raise after a test when you beat your current max. Never lowered automatically. |
@@ -174,16 +174,16 @@ The data lives in twelve PocketBase collections: template collections from the i
 | Collection | Key fields | Written by |
 | --- | --- | --- |
 | `programs` | name, track (main, supplemental or test), seq, rotation (e.g. A-B-A/B-A-B), sessions\_per\_week, phase names, progression (none, double or fixed; supplemental only) | Importer |
-| `workouts` | stable\_id (unique), program →, seq, kind (regular or test), phase, workout label (A/B), original\_date, title | Importer |
-| `workout_items` | workout →, block (A, C1…), order, exercise →, raw\_scheme, notes, planned\_sets (JSON), rep\_min, rep\_max, weight\_jump, base\_lift\_override →, needs\_review | Importer |
-| `exercises` | name (canonical), aliases (JSON), components (JSON, for complexes), base\_lift →, is\_main\_lift (has a base lift), category (oly, squat, pull, press, arms, accessory, conditioning, circuit), load\_type (weight, bodyweight, time or text), unilateral, form\_cue, video\_url | Importer, then you |
-| `one_rep_maxes` | lift →, weight\_lb, date, source (manual or test), session → (for tests), note | You, and the app after a test |
-| `sessions` | workout →, track, status (done or skipped), started\_at, finished\_at, bodyweight?, notes | App |
-| `set_logs` | session →, workout\_item →, exercise →, set\_index, planned\_pct, planned\_reps, side (unilateral only), weight\_lb, actual\_reps, completed, client\_id (UUID), updated\_at | App |
+| `workouts` | id (stable, e.g. main-0001), program →, seq, kind (regular or test), phase, workout label (A/B), title, week, day, original\_date | Importer |
+| `workout_items` | workout →, block (A, C1…), order, exercise →, raw\_name, raw\_scheme, prescription, notes, scheme\_type, planned\_sets (JSON), set\_count, rep\_min, rep\_max, per\_side, seconds, open\_ended, weight\_jump, base\_lift\_override, needs\_review | Importer |
+| `exercises` | name (canonical), aliases (JSON), components (JSON, for complexes), base\_lift, is\_main\_lift (has a base lift), category (oly, squat, pull, press, arms, accessory, conditioning, circuit), load\_type (weight, bodyweight, time or text), unilateral, form\_cue, video\_url | Importer, then you |
+| `one_rep_maxes` | lift, weight\_lb, date, source (manual or test), session → (for tests), note, deleted\_at | You, and the app after a test |
+| `sessions` | workout →, track, status (done or skipped), started\_at, finished\_at, bodyweight\_lb, notes, deleted\_at | App |
+| `set_logs` | session →, workout\_item →, exercise →, set\_index, planned\_pct, planned\_reps, side (unilateral only), weight\_lb, actual\_reps, completed, deleted\_at | App |
 | `track_state` | program →, current\_workout →, round (1, 2… for restarts), status (active, paused or archived) | App |
 | `body_parts` | key (e.g. arm), label, has\_side, unit (in, lb or %), sort\_order, custom | Seeded, then you |
-| `body_measurements` | date, body\_part →, side (left, right or blank), value, unit, notes, source (manual or csv), client\_id | App and CSV import |
-| `progress_photos` | date, pose, image (protected file), thumbnail, notes, client\_id | App |
+| `body_measurements` | date, body\_part →, side (left, right or blank), value, unit, notes, source (manual or csv), deleted\_at | App and CSV import |
+| `progress_photos` | date, pose, image (protected file), thumbnail, notes, deleted\_at | App |
 | `settings` | bar weight, fractional plates (JSON: weight → count, lb), test\_interval\_months (3), connect\_shortcut\_name | App |
 
 **Database conventions** (apply to every collection)
@@ -195,13 +195,15 @@ The data lives in twelve PocketBase collections: template collections from the i
 - **Don't store what can be calculated.** Percent targets, suggested weights, change since start and "last weight" are calculated when shown.
 - **Logs keep their own copy of the plan.** Each logged set saves the planned percent and reps it was done against, so editing a template never rewrites history.
 - **Unique constraints:**
-  - workouts.stable\_id
+  - record ids (stable template ids; phone-made UUIDs)
   - exercises.name
+  - track\_state.program
   - body\_parts.key
   - one\_rep\_maxes (lift, date)
   - body\_measurements (date, body\_part, side)
   - set\_logs (session, workout\_item, set\_index, side)
-- **Sync-safe rows.** Every record has PocketBase's id, created and updated, plus a client\_id UUID made on the phone and a deleted\_at flag so deletes sync instead of vanishing.
+- **Sync-safe rows.** Every record has an id, created and updated. Records the phone creates use a UUID made on the phone as their id (ids accept lowercase letters, digits, `-` and `_`, up to 128 characters), so a record has its final id before it ever syncs. Template records use the importer's stable ids (`main-0001`, `ex-back-squat`). App-written collections also have a deleted\_at flag, so deletes sync instead of vanishing.
+- **Base lifts are a select field** (snatch, clean\_and\_jerk, back\_squat, front\_squat, deadlift) on `exercises.base_lift`, `workout_items.base_lift_override` and `one_rep_maxes.lift`, not a relation.
 - **Naming.** Lowercase snake\_case keys, with a separate label field for display.
 - **Indexes** on the common lookups: set\_logs (exercise, created), body\_measurements (body\_part, date), workouts (program, seq).
 
@@ -403,7 +405,7 @@ date,body_part,side,value,unit,notes
 
 - Stored in a PocketBase file field marked protected, so each image can only be fetched with your login token, even from inside the tailnet.
 - The app does not keep full-size photos in its offline cache. Only small thumbnails of the most recent ones are kept, so a lost phone holds as little as possible.
-- TrueNAS snapshots back up the photos along with everything else.
+- Photos live in `pb_data/` with everything else, so PocketBase's scheduled backups and the Backblaze backup of the Docker folder cover them.
 
 ## Percentage and 1RM logic
 
@@ -469,10 +471,14 @@ There are seven phases. Each one ends with something you can use, and you can lo
    - Status (Nov 26, 2026): built. Run `python -m importer.import_main data/raw/tribe_barbell_workouts.csv`; tests with `python -m pytest importer/tests`. Starting 1RMs live in `data/config/one_rep_maxes.yaml`.
    - Done when: 363 workouts kept (39 reruns dropped, TEST WEEK left out), split into main, Barbell Accessory and test, with counts reported; every percentage row parses or is listed in `review.csv`; and every barbell exercise has a base lift.
 2. **Stand up PocketBase**
-   - Run PocketBase as a TrueNAS custom app (Docker image, dataset mounted at `/pb_data`). Expose it on the tailnet only. Turn on HTTPS certificates in the Tailscale admin console, then run "tailscale serve --bg --https=443 http://localhost:8090" on the machine running Tailscale, which gives https://\<machine>.\<tailnet>.ts.net with a trusted certificate. If Tailscale runs on a different host than PocketBase, point serve at the TrueNAS LAN address instead. Do not enable Tailscale Funnel, which would make it public.
-   - Mount two TrueNAS folders into the container: `/mnt/<pool>/apps/pocketbase/pb_data` → `/pb/pb_data` and `/mnt/<pool>/apps/pocketbase/pb_public` → `/pb/pb_public`. Start PocketBase with `serve --http=0.0.0.0:8090 --dir=/pb/pb_data --publicDir=/pb/pb_public` so the paths don't depend on the image. Deploys copy into the TrueNAS folder (`rsync -av --delete dist/ <user>@<truenas>:/mnt/<pool>/apps/pocketbase/pb_public/`), never into the container itself, so they survive container updates and need no restart.
-   - Create the collections from the data model with API rules set so only your user can read/write. Load `templates.json` and seed the starting 1RMs.
-   - Done when: `https://<machine>.<tailnet>.ts.net/_/` loads from the phone on cellular with Tailscale on and fails with Tailscale off, and the admin UI shows all the imported workouts.
+   - Image: `ghcr.io/muchobien/pocketbase:latest`, a maintained community image that follows official PocketBase releases from the project's new home (the GitHub repo was archived Oct 26, 2026). A commented-out `:0.42.3` line in `compose.yaml` pins a version when wanted.
+   - Runs as a **Dockge stack** at `/mnt/HDDs/Docker/DockgeStacks/pocketbase/` (`deploy/pocketbase/` in the repo: `compose.yaml`, `pb_migrations/`). `pb_data/` and `pb_public/` sit next to the compose file, so they survive image updates and are covered by the Backblaze backup of the Docker folder. Deploys copy into `pb_public/` there, never into the container.
+   - Reachable on the home network at `http://10.0.0.200:8090`, and on the tailnet through the TrueNAS Tailscale app: `tailscale serve --bg --https=443 http://10.0.0.200:8090` gives `https://<machine>.<tailnet>.ts.net` with a trusted certificate. The phone app always uses the tailnet HTTPS address, at home too, since iOS needs HTTPS for an installed PWA. Never enable Funnel.
+   - Backups: PocketBase's scheduled backups (Settings → Backups) write consistent zips into `pb_data/backups/`, which Backblaze picks up.
+   - Collections, API rules and default settings come from the migration files and are applied on start. Templates and the starting 1RMs are loaded with `python -m importer.upload` (upserts by id; never overwrites 1RMs already on the server).
+   - Step-by-step setup: `deploy/pocketbase/README.md`.
+   - Status (Nov 26, 2026): files written and tested against local PocketBase 0.40.6 and 0.42.3. Both migrations apply; the upload loads 289 exercises, 42 programs, 363 workouts, 1,778 items and 5 1RMs, and re-running it only updates. Checked: sign-ups blocked, nothing visible when logged out, templates read-only for the app user, and the app user can create sessions and set logs. **Done (Nov 26, 2026):** deployed on the NAS through Dockge, published on the tailnet with `tailscale serve`, and data uploaded.
+   - Done when: `https://<machine>.<tailnet>.ts.net/_/` loads from the phone on cellular with Tailscale on and fails with Tailscale off, and the admin UI shows the 363 workouts.
 3. **Minimum usable PWA**
    - Stack: Vite + React + TypeScript, Dexie for IndexedDB, the PocketBase JS SDK, vite-plugin-pwa for the manifest and service worker.
    - Build the Today screen, set logging, Finish/advance, manual 1RM entry, % targets, and last logged weight.
@@ -483,7 +489,7 @@ There are seven phases. Each one ends with something you can use, and you can lo
    - Tests: the "Test due" card at the program boundary with Skip and Not now, "Start test", open-ended attempts, and the automatic 1RM raise.
    - Done when: you can set any main workout as current, see past logs for any lift, and a finished MAX WEEK raises only the 1RMs you beat.
 5. **Polish**
-   - Plate math, CSV/JSON export, a nightly PocketBase backup to a TrueNAS snapshot, app icon and splash screen.
+   - Plate math, CSV/JSON export, a check that the scheduled PocketBase backups are landing in `pb_data/backups/` and reaching Backblaze, app icon and splash screen.
    - Optional later: an ntfy reminder on training days, Home Assistant sensor for sessions this week.
 6. **Supplemental programs**
    - Write `import_supplemental.py` for program CSVs in the format above. Build the Programs screen: sheet upload with preview, the in-app program builder, Duplicate and Archive. Load arm\_program.csv, starting at Phase 1, Session 1, and turn on the Barbell Accessory track. Add a Supplemental card per active program, Pause/Resume, the supplemental timeline tab, per-program progression rules and Restart.
@@ -496,7 +502,7 @@ There are seven phases. Each one ends with something you can use, and you can lo
 
 **iOS notes.** Safari only registers a service worker on HTTPS; the Tailscale certificate covers that. Turn on VPN On Demand in the Tailscale iOS app so sync works without remembering to connect. With the VPN off, the app still opens from its cache and logs offline, then syncs on the next connection. Install via Share → Add to Home Screen. Request persistent storage (`navigator.storage.persist()`), and treat the server as the source of truth so a wiped browser cache costs nothing.
 
-**Security.** Tailscale is the outer wall, and PocketBase is still locked down in case a device on the tailnet is compromised: sign-ups off, one user account, API rules on every collection so only that user can read or write, a strong admin password, and PocketBase kept updated. Optionally, add a Tailscale ACL so only your phone and laptop can reach the server's port.
+**Security.** The server is reachable from the home network and the tailnet, never the internet, so PocketBase's own locks are what keep a guest on the Wi-Fi out: sign-ups off, one user account, API rules on every collection (no data without that login), and a strong, unique superuser password for the admin UI. Home-network access is plain HTTP, so sign in through the tailnet HTTPS address when you can; the phone app always does. Keep the image updated. Optionally, add a Tailscale ACL so only your phone and laptop can reach the server over the tailnet.
 
 **Repository and deploys.** The code lives in a public GitHub repo, and no data goes in it.
 

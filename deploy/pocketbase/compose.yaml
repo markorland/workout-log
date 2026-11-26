@@ -1,0 +1,30 @@
+# Dockge stack: /mnt/HDDs/Docker/DockgeStacks/pocketbase/compose.yaml
+# The data folders live next to this file (inside the Docker folder, so the
+# Backblaze backup covers them) and survive image updates.
+services:
+  pocketbase:
+    # Community image that tracks official PocketBase releases:
+    # https://github.com/muchobien/pocketbase-docker
+    image: ghcr.io/muchobien/pocketbase:latest
+    # To pin a version (and roll back easily), swap the line above for this one:
+    # image: ghcr.io/muchobien/pocketbase:0.42.3
+    container_name: pocketbase
+    restart: unless-stopped
+    # Reachable on the home network at http://<nas>:8090 and on the tailnet
+    # through `tailscale serve` (HTTPS). See README.md.
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./pb_data:/pb_data
+      - ./pb_public:/pb_public
+      - ./pb_migrations:/pb_migrations
+    # The admin (superuser) account is created or updated from these on every
+    # start. Set them in the stack's .env file (Dockge's .env editor), never here.
+    environment:
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8090/api/health"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
