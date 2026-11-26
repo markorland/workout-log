@@ -1,5 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
-// Creates the twelve Barbell Tracker collections (docs/Plan.md, "Data model").
+// Creates the twelve Workout Log collections (docs/Plan.md, "Data model").
 //
 // Conventions:
 // - Record ids accept the importer's stable ids (e.g. "main-0001") and

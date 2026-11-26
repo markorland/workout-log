@@ -1,4 +1,4 @@
-# Barbell Tracker – Development Plan
+# Workout Log – Development Plan
 
 Nov 23, 2026 · @Mark · updated Nov 26, 2026
 
@@ -484,6 +484,10 @@ There are seven phases. Each one ends with something you can use, and you can lo
    - Build the Today screen, set logging, Finish/advance, manual 1RM entry, % targets, and last logged weight.
    - Host the built files from PocketBase's `pb_public` folder so there's one origin and no CORS.
    - Done when: added to the home screen, you can log a full workout in airplane mode and it shows up in PocketBase after reconnecting.
+   - Status (Nov 26, 2026): built in `app/` (React 19, Vite 8, Dexie 4, PocketBase SDK, vite-plugin-pwa). It has the Today, Lifts, Settings and Login screens; sign-in uses the app login. The main track starts at Beginner's Cycle 1 W1D1, the look follows the phone's light/dark setting, and all server calls are in `src/lib/pb.ts`.
+     - **Logging:** a tap logs the set at its target. With no % target, the suggestion is the previous set in this workout, then last time's weight. A long-press opens the weight/reps editor.
+     - **Tested:** unit tests cover rounding and 1RM lookup. An end-to-end test against a local PocketBase logs a full workout with the server unreachable, checks the "Not connected" state and waiting count, reconnects, and confirms on the server that the session, every set and the new track position arrived. Phone-size screenshots were checked in light and dark.
+     - **Done (Nov 26, 2026):** deployed to `pb_public`, installed on the iPhone as "Workout Log" with the new icon, and the airplane-mode check passed.
 4. **Timeline, history and tests**
    - Timeline with jump-to, program grouping, search, exercise history chart, and the History screen.
    - Tests: the "Test due" card at the program boundary with Skip and Not now, "Start test", open-ended attempts, and the automatic 1RM raise.
