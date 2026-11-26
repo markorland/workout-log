@@ -1,0 +1,26 @@
+# --- Personal data: never commit ---
+# Everything under data/ (raw exports, programs, measurements, config, importer output)
+data/
+*.csv
+*.xlsx
+*.xls
+!samples/*.csv
+pb_data/
+photos/
+backups/
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Build output and tooling ---
+dist/
+pb_public/
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
