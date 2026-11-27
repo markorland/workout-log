@@ -1,10 +1,29 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Shown in Settings -> About, so you can tell which build the phone is running.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
+function gitCommit(): string {
+  try {
+    const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim()
+    const dirty = execSync('git status --porcelain', { encoding: 'utf-8' }).trim() !== ''
+    return dirty ? `${sha} + local changes` : sha
+  } catch {
+    return 'unknown'
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    __GIT_COMMIT__: JSON.stringify(gitCommit()),
+  },
   plugins: [
     react(),
     VitePWA({

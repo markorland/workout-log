@@ -151,6 +151,18 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
         </div>
       </article>
 
+      <article className="card">
+        <h2>About</h2>
+        <dl>
+          <dt>Version</dt>
+          <dd>{__APP_VERSION__}</dd>
+          <dt>Built</dt>
+          <dd>{new Date(__BUILD_TIME__).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</dd>
+          <dt>Commit</dt>
+          <dd className="mono">{__GIT_COMMIT__}</dd>
+        </dl>
+      </article>
+
       <button className="danger" onClick={doSignOut}>
         Sign out
       </button>

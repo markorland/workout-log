@@ -51,6 +51,23 @@ share one HTTPS address.
 No restart needed. An installed app picks up the new version the next time
 it's opened (it may take one more open to switch over).
 
+To check which build the phone is running, open **Settings → About**. It shows
+the version from `package.json`, when the build was made, and the git commit
+(with "+ local changes" if it was built from uncommitted code).
+
+### Version numbers
+
+Every change that needs a new `dist` gets its own version, so each deploy can
+be checked against Settings → About:
+
+- **Last number (patch):** add 1 for every rebuild of `dist` that changes the
+  app, e.g. 1.0.0 → 1.0.1 → 1.0.2. Change `version` in `package.json`
+  before building.
+- **Middle and first numbers:** bumped only when we decide a set of changes
+  deserves it, e.g. 1.0.5 → 1.1.0 for a new feature, or 2.0.0 for a big
+  change. The patch number goes back to 0.
+- 1.0.0 is v1: everything up to the About card (commit tagged `v1.0.0`).
+
 ## Install on the iPhone
 
 1. With Tailscale on, open `https://<machine>.<tailnet>.ts.net/` in **Safari**
