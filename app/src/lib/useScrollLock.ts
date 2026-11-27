@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { scroller } from './scroll'
 
 /**
  * Freeze the page while a sheet is open and put it back exactly where it was.
@@ -13,7 +14,12 @@ export function useScrollLock(): void {
     body.style.top = `-${y}px`
     body.style.width = '100%'
     body.style.overflow = 'hidden'
+    // The app's own scroll area (see lib/scroll.ts): hold it still too.
+    const el = scroller()
+    const prevEl = el?.style.overflow ?? ''
+    if (el) el.style.overflow = 'hidden'
     return () => {
+      if (el) el.style.overflow = prevEl
       body.style.position = prev.position
       body.style.top = prev.top
       body.style.width = prev.width

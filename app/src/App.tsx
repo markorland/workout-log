@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ConnectionBadge from './components/ConnectionBadge'
 import ScrollToTop from './components/ScrollToTop'
 import { isSignedIn } from './lib/pb'
+import { scrollToTop } from './lib/scroll'
 import { startSyncTriggers } from './lib/sync'
 import Body from './screens/Body'
 import Lifts from './screens/Lifts'
@@ -25,7 +26,7 @@ export default function App() {
 
   const go = (t: Tab) => {
     setTab(t)
-    window.scrollTo({ top: 0 })
+    scrollToTop()
   }
 
   useEffect(() => {
@@ -44,31 +45,33 @@ export default function App() {
         </span>
         <ConnectionBadge />
       </header>
-      <main className="content">
-        {tab === 'today' && (
-          <Today
-            onGoToLifts={() => go('lifts')}
-            supWorkoutId={supWorkout}
-            onOpenSupplemental={setSupWorkout}
-            onCloseSupplemental={() => setSupWorkout(null)}
-          />
-        )}
-        {tab === 'timeline' && (
-          <Timeline
-            onOpenToday={() => {
-              setSupWorkout(null)
-              go('today')
-            }}
-            onOpenSupplemental={(id) => {
-              setSupWorkout(id)
-              go('today')
-            }}
-          />
-        )}
-        {tab === 'lifts' && <Lifts onOpenToday={() => go('today')} />}
-        {tab === 'body' && <Body />}
-        {tab === 'settings' && <SettingsScreen onSignedOut={() => setSignedIn(false)} />}
-      </main>
+      <div className="scroller">
+        <main className="content">
+          {tab === 'today' && (
+            <Today
+              onGoToLifts={() => go('lifts')}
+              supWorkoutId={supWorkout}
+              onOpenSupplemental={setSupWorkout}
+              onCloseSupplemental={() => setSupWorkout(null)}
+            />
+          )}
+          {tab === 'timeline' && (
+            <Timeline
+              onOpenToday={() => {
+                setSupWorkout(null)
+                go('today')
+              }}
+              onOpenSupplemental={(id) => {
+                setSupWorkout(id)
+                go('today')
+              }}
+            />
+          )}
+          {tab === 'lifts' && <Lifts onOpenToday={() => go('today')} />}
+          {tab === 'body' && <Body />}
+          {tab === 'settings' && <SettingsScreen onSignedOut={() => setSignedIn(false)} />}
+        </main>
+      </div>
       {tab !== 'today' && <ScrollToTop />}
       <nav className="tabbar">
         {(

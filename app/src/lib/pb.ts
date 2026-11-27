@@ -1,9 +1,12 @@
 // The only module that talks to PocketBase. Everything else goes through Dexie.
 import PocketBase, { ClientResponseError } from 'pocketbase'
 
-/** Same origin in production (PocketBase serves the app); VITE_PB_URL in dev. */
+/**
+ * Same origin in production (PocketBase serves the app); VITE_PB_URL in dev only,
+ * so a test URL left in the shell can never end up in a deployed build.
+ */
 export function serverUrl(): string {
-  const env = import.meta.env?.VITE_PB_URL as string | undefined
+  const env = import.meta.env?.DEV ? (import.meta.env.VITE_PB_URL as string | undefined) : undefined
   if (env) return env.replace(/\/$/, '')
   return typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:8090'
 }

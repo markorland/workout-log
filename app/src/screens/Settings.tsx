@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { scrollToTop } from '../lib/scroll'
 import { useEffect, useState } from 'react'
 import { useSyncStatus } from '../lib/useSyncStatus'
 import History from './History'
@@ -63,7 +64,7 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
           className="back-link"
           onClick={() => {
             setShowHistory(false)
-            window.scrollTo({ top: 0 })
+            scrollToTop()
           }}
         >
           ‹ Settings
@@ -81,7 +82,7 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
         className="card nav-row"
         onClick={() => {
           setShowHistory(true)
-          window.scrollTo({ top: 0 })
+          scrollToTop()
         }}
       >
         <span>

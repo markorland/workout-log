@@ -106,22 +106,48 @@ h2 {
 }
 
 /* ---- layout ---- */
+/* The page itself never scrolls; .scroller does (see lib/scroll.ts). In a Home
+   Screen app, iOS 26 blurs content that scrolls under the status bar. */
+html:has(.app),
+html:has(.app) body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
 .app {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
+.app {
+  --topbar-h: calc(env(safe-area-inset-top) + 2.9rem);
+}
+.scroller {
+  flex: 1;
+  min-height: 0;
+  margin-top: var(--topbar-h);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* iOS 26 blurs the top ~40pt of a Home Screen app (its "scroll edge effect")
+   unless the top edge is a position: fixed, full-width box with a plain
+   background colour. So the header is fixed, solid, and has no backdrop-filter,
+   mask or pointer-events: none. */
 .topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  box-sizing: border-box;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: calc(env(safe-area-inset-top) + 0.5rem) 0.75rem 0.5rem;
-  /* Solid, no blur: iOS Safari renders a sticky header with backdrop-filter blurry. */
-  background: var(--bg);
+  padding: env(safe-area-inset-top) 0.75rem 0;
+  background-color: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 .brand {

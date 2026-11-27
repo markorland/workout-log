@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react'
+import { scroller, scrollToTop } from '../lib/scroll'
 
 /** A floating ↑ button that appears once you've scrolled down; tap to jump to the top. */
 export default function ScrollToTop() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 400)
+    const el = scroller()
+    if (!el) return
+    const onScroll = () => setShow(el.scrollTop > 400)
     onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
   }, [])
 
   if (!show) return null
   return (
-    <button className="to-top" aria-label="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+    <button className="to-top" aria-label="Back to top" onClick={() => scrollToTop('smooth')}>
       ↑
     </button>
   )

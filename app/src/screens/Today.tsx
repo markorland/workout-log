@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { scrollToTop } from '../lib/scroll'
 import { useEffect, useMemo, useState } from 'react'
 import ExerciseCard from '../components/ExerciseCard'
 import TestDueCard from '../components/TestDueCard'
@@ -105,7 +106,7 @@ export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, o
       const r = kind === 'finish' ? await finishWorkout(workout.id) : await skipWorkout(workout.id)
       if (r.raised.length || r.testComplete || r.programRestarted || r.mainLooped) setResult(r)
       if (isSup) onCloseSupplemental()
-      window.scrollTo({ top: 0 })
+      scrollToTop()
       void checkAndSync({ resetRetries: true })
     } finally {
       setBusy(false)
@@ -154,7 +155,7 @@ export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, o
                 title={`${c.program.name}: ${c.title}`}
                 onClick={() => {
                   onOpenSupplemental(c.workoutId)
-                  window.scrollTo({ top: 0 })
+                  scrollToTop()
                 }}
               >
                 <span className="sup-chip-name">{c.program.name}</span>
