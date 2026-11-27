@@ -170,6 +170,37 @@ When a phase adds a migration file (Phase 6 added `1764300000_supplemental_progr
 1. Copy the new file from `deploy/pocketbase/pb_migrations/` to your share, then into the stack's `pb_migrations/` folder (`sudo cp --no-preserve=mode,ownership …`, as in step 2).
 2. Restart the stack in Dockge. New migrations are applied on start; the log shows `Applied 1764300000_supplemental_programs.js`.
 
+## Starting fresh (erase logged data)
+
+Removes sessions, logged sets, your place in each program and body
+measurements. Keeps 1RMs, progress photos, the workout templates, settings and
+your login. Each device keeps an offline copy and doesn't pick up deletions, so
+wipe those too.
+
+1. **Check nothing is waiting to sync:** the badge at the top says "Synced",
+   so any photo you added is on the server.
+2. **iPhone:** delete the Workout Log icon from the Home Screen (this removes
+   its offline data). Then in Settings → Apps → Safari → Advanced → Website
+   Data, remove your `ts.net` address and `10.0.0.200`.
+3. **Chrome on a PC** (only that site): go to
+   `chrome://settings/content/all`, search `10.0.0.200`, and click the trash
+   icon next to `http://10.0.0.200:8090` → **Delete**. Or, with the app open,
+   click the icon left of the address bar → **Site settings** → **Delete data**.
+   This removes the offline data, cache and service worker for that site only.
+4. **Server:** from the repo root:
+
+   ```sh
+   python3 -m importer.reset_data          # dry run: shows counts
+   python3 -m importer.reset_data --yes    # delete
+   ```
+
+   Options: `--maxes` and `--photos` also delete 1RMs and photos; `--programs`
+   deletes supplemental programs uploaded in the app (ids starting `sup-`).
+   Barbell Accessory always stays.
+5. Reinstall on the phone (see `app/README.md`, "Install on the iPhone") and
+   sign in. Your 1RMs and photos download again, and you start at Beginner's
+   Cycle 1, Round 1.
+
 ## Notes
 
 - Changes made to collections in the admin UI are written as new migration
