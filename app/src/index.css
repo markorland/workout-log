@@ -303,7 +303,9 @@ h2 {
 .set {
   width: 100%;
   display: grid;
-  grid-template-columns: 2rem 3.2rem 1fr 3.5rem 2rem;
+  /* reps column sized to fit "× 10–15" on one line */
+  grid-template-columns: 2rem 3.2rem 1fr auto 2rem;
+  column-gap: 0.4rem;
   align-items: center;
   text-align: left;
   padding: 0.7rem 0.6rem;
@@ -330,6 +332,29 @@ h2 {
 .set-w {
   font-weight: 600;
   font-size: 1.05rem;
+}
+.set-r {
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Floating "back to top" button, above the tab bar */
+.to-top {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(env(safe-area-inset-bottom) + 4.5rem);
+  z-index: 6;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--accent);
+  font-size: 1.3rem;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 20%);
 }
 .set-w.muted {
   font-weight: 400;
@@ -775,4 +800,159 @@ dd {
 .plate-warn-actions button {
   padding: 0.45rem 0.7rem;
   font-size: 0.88rem;
+}
+
+/* ---- phase 6: supplemental programs ---- */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--line);
+  border-radius: 10px;
+  padding: 3px;
+  margin: 0.25rem 0 0.9rem;
+}
+.segmented button {
+  border: none;
+  background: none;
+  padding: 0.5rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.segmented button.on {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+}
+.supplemental {
+  margin-top: 1.5rem;
+}
+.supplemental h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+.sup-card {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+.sup-start {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.back-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.meta.suggest {
+  color: var(--accent);
+}
+.meta.cue a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.program-body {
+  padding: 0 0.9rem 0.9rem;
+}
+.program-body .row-actions {
+  margin: 0.6rem 0;
+}
+.danger-text {
+  color: var(--danger);
+}
+.small {
+  font-size: 0.82rem;
+}
+.file-pick input[type='file'] {
+  padding: 0.5rem;
+  font-size: 0.95rem;
+}
+.form-grid {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.8rem 0;
+}
+select {
+  font: inherit;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+}
+.preview-phases {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  display: grid;
+  gap: 0.6rem;
+}
+.problems {
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 0.7rem;
+  margin: 0.6rem 0;
+}
+.problems ul,
+.warnings {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+}
+.warnings {
+  color: var(--amber);
+}
+.supplemental-list > .finish {
+  margin: 0 0 0.9rem;
+}
+
+/* Supplemental chips above the Today header */
+.sup-chips {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+.sup-chips-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.sup-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.sup-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: calc(50% - 0.25rem);
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border-color: var(--accent);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.sup-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-weight: 600;
+}
+.sup-chip-session {
+  flex-shrink: 0;
+  color: var(--accent);
 }

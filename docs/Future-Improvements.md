@@ -54,3 +54,12 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - Show a short message when it wraps ("Program complete. Starting round 2 at RTF W1D1."), so it isn't a surprise.
 
 **Related:** starting the loop at RTF skips the Beginner's Cycles, but the rest of the no-percentage block is still in the loop: March 2021 – August 2022, #61–94. See "Add percentages to the early workouts" above.
+
+## In-app program builder and Duplicate
+
+**Deferred from Phase 6.** Supplemental programs come in by CSV upload. The plan also had:
+
+- **A form builder:** program → phases → workouts → exercises, with exercise names autocompleting from the library so history links up. Useful for short programs and small tweaks without editing a CSV.
+- **Duplicate:** copy a program, then edit the copy. Only useful once the builder exists.
+
+**For now:** edit the CSV and upload it again (delete the old program first if you don't want both), or change single fields in the PocketBase admin UI (`workout_items` with ids starting `sup-`).

@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { AppDB, setMeta, today, useDatabase } from './db'
+import { AppDB, setMeta, today, setDatabase } from './db'
 import type { Exercise, OneRepMax, Program, Workout, WorkoutItem } from './types'
 
 // Loaded after the database is swapped in, so every module sees the test DB.
@@ -31,7 +31,7 @@ const orm = (lift: OneRepMax['lift'], w: number, date: string): OneRepMax => ({
 
 beforeEach(async () => {
   db = new AppDB(`wk-${Math.random()}`)
-  useDatabase(db)
+  setDatabase(db)
   wk = await import('./workout')
   await db.programs.bulkPut([prog('p1', 'main', 1), prog('p2', 'main', 2), prog('prog-test-max-week', 'test', 1)])
   await db.workouts.bulkPut([

@@ -13,8 +13,8 @@ const suite = URL ? describe : describe.skip
 
 suite('offline logging, then sync', () => {
   it('logs a full workout offline and uploads it on reconnect', async () => {
-    const { AppDB, useDatabase, pendingCount } = await import('./db')
-    useDatabase(new AppDB(`test-${Date.now()}`))
+    const { AppDB, setDatabase, pendingCount } = await import('./db')
+    setDatabase(new AppDB(`test-${Date.now()}`))
     const pbmod = await import('./pb')
     const client = new PocketBase(URL)
     client.autoCancellation(false)

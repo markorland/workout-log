@@ -25,6 +25,11 @@ export interface Program {
   progression: string
   start_date: string
   end_date: string
+  // Uploaded supplemental programs (Phase 6)
+  end_action?: '' | 'restart' | 'stop'
+  sessions_per_week?: number | null
+  weeks_per_phase?: number | null
+  phase_names?: { phase: number; name: string; weeks: number }[] | null
 }
 
 export interface Workout {
@@ -70,6 +75,8 @@ export interface WorkoutItem {
   weight_jump: number | null
   base_lift_override: Lift | ''
   needs_review: boolean
+  form_cue?: string
+  video_url?: string
 }
 
 export interface Exercise {

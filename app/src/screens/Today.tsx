@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ExerciseCard from '../components/ExerciseCard'
 import TestDueCard from '../components/TestDueCard'
 import { db, getMeta } from '../lib/db'
+import { activeSupplementals, ensureSupplementalTracks, trackIdFor } from '../lib/programs'
 import { blockGroup } from '../lib/slots'
 import { checkAndSync } from '../lib/sync'
 import { DEFAULT_SETTINGS, fmtLb } from '../lib/targets'
@@ -12,13 +13,23 @@ import {
   trackOf, type FinishResult,
 } from '../lib/workout'
 
-export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
+interface TodayProps {
+  onGoToLifts: () => void
+  /** A supplemental session opened from its card (null = the main/test workout). */
+  supWorkoutId: string | null
+  onOpenSupplemental: (workoutId: string) => void
+  onCloseSupplemental: () => void
+}
+
+export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, onCloseSupplemental }: TodayProps) {
   const ready = useLiveQuery(async () => !!(await getMeta('syncedOnce')) && (await db.workouts.count()) > 0)
   const mainTrack = useLiveQuery(() => db.track_state.get(MAIN_TRACK_ID))
-  const workoutId = useLiveQuery(() => activeWorkoutId())
+  const mainWorkoutId = useLiveQuery(() => activeWorkoutId())
+  const workoutId = supWorkoutId ?? mainWorkoutId
 
   useEffect(() => {
     if (ready && mainTrack === undefined) void ensureMainTrack()
+    if (ready) void ensureSupplementalTracks()
   }, [ready, mainTrack])
 
   const data = useLiveQuery(async () => {
@@ -34,9 +45,12 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
       .sort((a, b) => (a.started_at < b.started_at ? 1 : -1))[0]
     const logs = session ? await db.set_logs.where('session').equals(session.id).toArray() : []
     const testDays = trackOf(workoutId) === 'test' ? await db.workouts.where('program').equals(workout.program).count() : 0
-    return { workout, program, items, exercises, mainCount, session, logs, testDays }
+    const supTrack = trackOf(workoutId) === 'supplemental' ? await db.track_state.get(trackIdFor(workout.program)) : undefined
+    const programCount = supTrack ? await db.workouts.where('program').equals(workout.program).count() : 0
+    return { workout, program, items, exercises, mainCount, session, logs, testDays, supTrack, programCount }
   }, [workoutId])
 
+  const supCards = useLiveQuery(() => activeSupplementals()) ?? []
   const testCard = useLiveQuery(async () => ((await showTestDueCard()) ? await testDueInfo() : null), [workoutId])
   const maxes = useLiveQuery(() => db.one_rep_maxes.toArray()) ?? []
   const settings = useLiveQuery(() => db.settings.get('settings')) ?? DEFAULT_SETTINGS
@@ -65,13 +79,16 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
   }
   if (!data) return <div className="empty">Loading…</div>
 
-  const { workout, program, exercises, mainCount, session, logs, testDays } = data
+  const { workout, program, exercises, mainCount, session, logs, testDays, supTrack, programCount } = data
   const isTest = trackOf(workout.id) === 'test'
+  const isSup = trackOf(workout.id) === 'supplemental'
   const exMap = new Map(exercises.filter(Boolean).map((e) => [e!.id, e!]))
   const done = logs.filter((l) => l.completed && !l.deleted_at).length
   const weekDay = isTest
     ? `Day ${workout.seq} of ${testDays}`
-    : workout.week && workout.day
+    : isSup
+      ? workout.title
+      : workout.week && workout.day
       ? `Week ${workout.week} · Day ${workout.day}`
       : workout.title
 
@@ -86,7 +103,8 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
     setBusy(true)
     try {
       const r = kind === 'finish' ? await finishWorkout(workout.id) : await skipWorkout(workout.id)
-      if (r.raised.length || r.testComplete) setResult(r)
+      if (r.raised.length || r.testComplete || r.programRestarted) setResult(r)
+      if (isSup) onCloseSupplemental()
       window.scrollTo({ top: 0 })
       void checkAndSync({ resetRetries: true })
     } finally {
@@ -98,8 +116,10 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
     <div className="today">
       {result && (
         <article className="card result">
-          <h2>{result.testComplete ? 'Test complete' : 'Test day done'}</h2>
-          {result.raised.length ? (
+          <h2>{result.programRestarted ? 'Program complete' : result.testComplete ? 'Test complete' : 'Test day done'}</h2>
+          {result.programRestarted ? (
+            <p className="muted">Starting the next round at Phase 1. Use heavier weights than last time.</p>
+          ) : result.raised.length ? (
             <ul>
               {result.raised.map((r) => (
                 <li key={r.lift}>
@@ -114,7 +134,35 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
         </article>
       )}
 
-      {!isTest && testCard && <TestDueCard dueDate={testCard.dueDate} />}
+      {!isTest && !isSup && testCard && <TestDueCard dueDate={testCard.dueDate} />}
+
+      {!isSup && supCards.length > 0 && (
+        <section className="sup-chips" aria-label="Supplemental programs">
+          <div className="sup-chips-label">Supplemental</div>
+          <div className="sup-chips-row">
+            {supCards.map((c) => (
+              <button
+                key={c.program.id}
+                className="sup-chip"
+                title={`${c.program.name}: ${c.title}`}
+                onClick={() => {
+                  onOpenSupplemental(c.workoutId)
+                  window.scrollTo({ top: 0 })
+                }}
+              >
+                <span className="sup-chip-name">{c.program.name}</span>
+                <span className="sup-chip-session">· {c.tag} ›</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isSup && (
+        <button className="back-link" onClick={onCloseSupplemental}>
+          ‹ Back to main workout
+        </button>
+      )}
 
       <section className="workout-head">
         <div className="program">{isTest ? `Test · ${program?.name}` : program?.name}</div>
@@ -122,7 +170,9 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
         <div className="muted">
           {isTest
             ? 'Keep adding attempts until you miss. Beaten maxes update when you finish.'
-            : `#${workout.seq} of ${mainCount} · originally ${new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}`}
+            : isSup
+              ? `Session ${workout.seq} of ${programCount}${supTrack && supTrack.round > 1 ? ` · Round ${supTrack.round}` : ''}`
+              : `#${workout.seq} of ${mainCount} · originally ${new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}`}
           {session && ` · ${done} set${done === 1 ? '' : 's'} logged`}
         </div>
       </section>
@@ -140,6 +190,7 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
               logs={logs.filter((l) => l.workout_item === item.id && !l.deleted_at)}
               maxes={maxes}
               settings={settings}
+              program={program}
               onGoToLifts={onGoToLifts}
             />
           ))}
@@ -147,9 +198,13 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
       ))}
 
       <button className="primary finish" disabled={busy} onClick={() => void close('finish')}>
-        {busy ? 'Saving…' : isTest ? `Finish day ${workout.seq}` : 'Finish workout'}
+        {busy ? 'Saving…' : isTest ? `Finish day ${workout.seq}` : isSup ? 'Finish session' : 'Finish workout'}
       </button>
-      {isTest ? (
+      {isSup ? (
+        <button className="secondary-wide" disabled={busy} onClick={() => void close('skip')}>
+          Skip session
+        </button>
+      ) : isTest ? (
         <button
           className="secondary-wide"
           disabled={busy}
@@ -164,6 +219,7 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
           Skip workout
         </button>
       )}
+
     </div>
   )
 }

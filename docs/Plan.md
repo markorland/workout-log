@@ -523,6 +523,32 @@ There are seven phases. Each one ends with something you can use, and you can lo
 6. **Supplemental programs**
    - Write `import_supplemental.py` for program CSVs in the format above. Build the Programs screen: sheet upload with preview, the in-app program builder, Duplicate and Archive. Load arm\_program.csv, starting at Phase 1, Session 1, and turn on the Barbell Accessory track. Add a Supplemental card per active program, Pause/Resume, the supplemental timeline tab, per-program progression rules and Restart.
    - Done when: Barbell Accessory and the arm program are both active, each with its own card and place; you can do an arm session on a rest day, neither the main workout nor Barbell Accessory moves; the arm program's next suggested lb follows double progression, and Barbell Accessory shows last weights with no suggestion.
+   - Status (Nov 27, 2026): built.
+     - **Decisions made this phase:**
+       - Programs come in through an in-app CSV upload only; there's no separate `import_supplemental.py`.
+       - The form builder and Duplicate are deferred (see `docs/Future-Improvements.md`).
+       - Barbell Accessory starts paused.
+       - No arm exercises are unilateral.
+     - **Server:** migration `1764300000_supplemental_programs.js` lets the app user create, edit and delete programs, workouts and items whose id starts with `sup-` (the imported templates stay read-only), and add exercises. It also adds `programs.end_action` and `weeks_per_phase`, plus `workout_items.form_cue` and `video_url`.
+     - **Upload:** Timeline → Supplemental → **Add a program (CSV)**. The file is checked on the phone, with errors listed by row and phase. You choose the name, rotation (alternate A-B-A/B-A-B…, or each workout once per phase), sessions per week, end action and progression rule, then see a preview. New exercises are confirmed before they're added. Saving needs a connection: it writes straight to the server, then re-downloads the templates.
+     - **Arm workbook:** `importer/arm_workbook_to_csv.py` turns `Arm_Workout_Tracker.xlsx` into `data/programs/arm_program.csv` (30 rows, with the video links from its HYPERLINK formulas). It expands to 36 sessions.
+     - **Running programs:**
+       - One card per active supplemental program on Today. It opens that session, with a back link to the main workout.
+       - Finish or Skip moves only that program. At the end it restarts at Phase 1 with round + 1, or stops (archived).
+       - Timeline has a Main | Supplemental switch, with Active / Paused / Archived, Restart at Phase 1, set-as-current on any session, and Delete for uploaded programs.
+       - Templates re-download automatically when the server's change.
+     - **Suggestions:** double progression (last weight + jump after every set hit the top of the range, else the same weight; blank the first time in each phase; "make it harder" for bodyweight moves) or a fixed increase. Shown with the item's form cue and a Watch link. Sets with a rep range always open the editor, with the top of the range in gray, so the real reps are logged.
+     - **Also:** a crash screen with Reload instead of a blank page.
+     - **Tested:**
+       - unit tests for CSV parsing and checks, the session expansion, tracks, end actions and both progression rules
+       - access rules checked against a local PocketBase
+       - end to end in the browser: upload arm_program.csv, then log Session 1 curls at 20 × 12 and see Session 3 suggest 22.5 lb
+     - **Also done in this phase:**
+       - Supplemental programs show as chips above the Today header ("SUPPLEMENTAL", side by side, long names shortened with …), with a divider before the main program; the cards at the bottom were removed.
+       - A back-to-top ↑ button on every screen except Today.
+       - Suggestions read simply "Suggested weight: X lb".
+       - Rep ranges stay on one line.
+     - **Done (Nov 27, 2026):** migration applied on the NAS, arm program uploaded and tested on the iPhone.
 7. **Body measurements and photos**
    - Build the Body screen: quick entry, charts, CSV import with preview and duplicate check, export. Add progress photos with on-phone resize, an offline upload queue, protected file storage and the compare view.
    - Done when: a CSV in the format above imports cleanly, a "Right Arm" style name is split into arm + right in the preview, and a photo taken offline appears on the server after reconnecting.

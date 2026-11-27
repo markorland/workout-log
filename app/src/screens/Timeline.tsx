@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import SupplementalPrograms from '../components/SupplementalPrograms'
 import { db } from '../lib/db'
 import type { Program, Workout } from '../lib/types'
 import { useScrollLock } from '../lib/useScrollLock'
@@ -9,7 +10,36 @@ type Status = 'done' | 'skipped' | 'in_progress' | 'not_started'
 const MARK: Record<Status, string> = { done: '✓', skipped: '–', in_progress: '•', not_started: '' }
 const LABEL: Record<Status, string> = { done: 'Done', skipped: 'Skipped', in_progress: 'In progress', not_started: '' }
 
-export default function Timeline({ onOpenToday }: { onOpenToday: () => void }) {
+/** Timeline tab: Main (the TrueCoach timeline) | Supplemental (side programs). */
+export default function Timeline({
+  onOpenToday,
+  onOpenSupplemental,
+}: {
+  onOpenToday: () => void
+  onOpenSupplemental: (workoutId: string) => void
+}) {
+  const [view, setView] = useState<'main' | 'supplemental'>('main')
+  return (
+    <div className="timeline">
+      <div className="segmented" role="tablist">
+        <button role="tab" aria-selected={view === 'main'} className={view === 'main' ? 'on' : ''} onClick={() => setView('main')}>
+          Main
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === 'supplemental'}
+          className={view === 'supplemental' ? 'on' : ''}
+          onClick={() => setView('supplemental')}
+        >
+          Supplemental
+        </button>
+      </div>
+      {view === 'main' ? <MainTimeline onOpenToday={onOpenToday} /> : <SupplementalPrograms onOpenSupplemental={onOpenSupplemental} />}
+    </div>
+  )
+}
+
+function MainTimeline({ onOpenToday }: { onOpenToday: () => void }) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<Workout | null>(null)
@@ -74,8 +104,7 @@ export default function Timeline({ onOpenToday }: { onOpenToday: () => void }) {
   const date = (w: Workout) => new Date(w.original_date.slice(0, 10) + 'T12:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
-    <div className="timeline">
-      <h1>Timeline</h1>
+    <div>
       <div className="search-wrap">
         <input
           className="search"

@@ -163,6 +163,13 @@ Being on the home network only gets someone to the login screen. They still need
   snooping on your Wi-Fi. If you sign in from a computer at home, using the
   tailnet HTTPS address avoids that; the phone app always uses it.
 
+## Updating the server for a new phase
+
+When a phase adds a migration file (Phase 6 added `1764300000_supplemental_programs.js`):
+
+1. Copy the new file from `deploy/pocketbase/pb_migrations/` to your share, then into the stack's `pb_migrations/` folder (`sudo cp --no-preserve=mode,ownership …`, as in step 2).
+2. Restart the stack in Dockge. New migrations are applied on start; the log shows `Applied 1764300000_supplemental_programs.js`.
+
 ## Notes
 
 - Changes made to collections in the admin UI are written as new migration

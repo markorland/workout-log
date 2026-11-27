@@ -37,7 +37,7 @@ export class AppDB extends Dexie {
 export let db = new AppDB()
 
 /** Tests use a fresh database per run. */
-export function useDatabase(next: AppDB) {
+export function setDatabase(next: AppDB) {
   db = next
 }
 

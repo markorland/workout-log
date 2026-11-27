@@ -6,7 +6,7 @@
 // after 30 s, 1 min, 2 min and 5 min, then stops. Every successful check syncs:
 // upload dirty rows, then download anything changed on the server.
 import { db, getMeta, pendingCount, setMeta, SYNCED_TABLES, TEMPLATE_TABLES } from './db'
-import { fetchAll, healthCheck, isSignedIn, refreshAuth, upsert } from './pb'
+import { countRecords, fetchAll, healthCheck, isSignedIn, latestUpdated, refreshAuth, upsert } from './pb'
 
 export type ConnState = 'checking' | 'syncing' | 'synced' | 'not_connected' | 'offline' | 'signed_out' | 'error'
 
@@ -93,14 +93,24 @@ async function pull(): Promise<void> {
 
 /** Download all templates (programs, workouts, items, exercises). */
 export async function pullTemplates(): Promise<void> {
+  let newest = ''
   for (const table of TEMPLATE_TABLES) {
     const recs = await fetchAll<Record<string, unknown>>(table)
+    for (const r of recs) if ((r.updated as string) > newest) newest = r.updated as string
     await db.transaction('rw', db.table(table), async () => {
       await db.table(table).clear()
       await db.table(table).bulkPut(recs.map(fromServer))
     })
   }
   await setMeta('templatesAt', new Date().toISOString())
+  await setMeta('templatesNewest', newest)
+}
+
+/** Re-download templates if the server's changed (e.g. a program uploaded or deleted elsewhere). */
+async function templatesChanged(): Promise<boolean> {
+  const known = (await getMeta('templatesNewest')) ?? ''
+  for (const table of TEMPLATE_TABLES) if ((await latestUpdated(table)) > known) return true
+  return (await countRecords('programs')) !== (await db.programs.count())
 }
 
 async function runCheck(): Promise<void> {
@@ -126,7 +136,7 @@ async function runCheck(): Promise<void> {
       set({ state: 'signed_out', message: 'Sign in again to sync.' })
       return
     }
-    if (!(await getMeta('templatesAt'))) await pullTemplates()
+    if (!(await getMeta('templatesAt')) || (await templatesChanged())) await pullTemplates()
     await push()
     await pull()
     await setMeta('syncedOnce', new Date().toISOString())

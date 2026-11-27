@@ -79,4 +79,23 @@ export async function upsert(collection: string, id: string, data: Record<string
   }
 }
 
+export async function createRecord(collection: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  return pb().collection(collection).create(data)
+}
+
+export async function deleteRecord(collection: string, id: string): Promise<void> {
+  await pb().collection(collection).delete(id)
+}
+
+/** The newest `updated` in a collection ('' if empty). Cheap check for template changes. */
+export async function latestUpdated(collection: string): Promise<string> {
+  const r = await pb().collection(collection).getList(1, 1, { sort: '-updated', fields: 'updated', skipTotal: true })
+  return (r.items[0]?.updated as string | undefined) ?? ''
+}
+
 export { ClientResponseError }
+
+export async function countRecords(collection: string): Promise<number> {
+  const r = await pb().collection(collection).getList(1, 1, { fields: 'id' })
+  return r.totalItems
+}

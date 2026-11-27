@@ -1,11 +1,11 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
-import { AppDB, useDatabase } from './db'
+import { AppDB, setDatabase } from './db'
 
 describe('export', () => {
   it('writes one CSV row per set in workout order, and JSON without local bookkeeping', async () => {
     const db = new AppDB(`exp-${Math.random()}`)
-    useDatabase(db)
+    setDatabase(db)
     const { buildCsv, buildJson } = await import('./exportData')
     await db.programs.put({ id: 'p1', name: 'Hong Kong, Special', track: 'main', seq: 1, role: '', rotation: '', progression: '', start_date: '', end_date: '' })
     await db.workouts.put({ id: 'main-0001', program: 'p1', seq: 1, kind: 'regular', phase: '', label: '', title: 'W1D1', week: 1, day: 1, original_date: '' })

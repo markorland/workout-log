@@ -140,6 +140,8 @@ export interface FinishResult {
   /** 1RMs raised by a finished test day. */
   raised: { lift: Lift; from: number | null; to: number }[]
   testComplete: boolean
+  /** A supplemental program reached its end and started round 2, 3… */
+  programRestarted?: boolean
 }
 
 /** Close the session ("done" or "skipped") and move its track to the next workout. */
@@ -150,16 +152,28 @@ async function closeWorkout(workoutId: string, status: 'done' | 'skipped'): Prom
   const w = await db.workouts.get(workoutId)
   if (!w) return result
 
-  const trackId = trackOf(workoutId) === 'test' ? TEST_TRACK_ID : MAIN_TRACK_ID
+  const kind = trackOf(workoutId)
+  const trackId = kind === 'test' ? TEST_TRACK_ID : kind === 'main' ? MAIN_TRACK_ID : `track-${w.program}`
   const track = await db.track_state.get(trackId)
   if (track && track.current_workout === workoutId) {
     const next = await nextWorkout(w)
     if (next) {
       result.nextId = next.id
       await db.track_state.update(trackId, { current_workout: next.id, program: next.program, ...stamp() })
-    } else if (trackId === TEST_TRACK_ID) {
+    } else if (kind === 'test') {
       result.testComplete = true
       await db.track_state.update(trackId, { current_workout: '', status: 'archived', ...stamp() })
+    } else if (kind === 'supplemental') {
+      // End of a supplemental program: restart at Phase 1 (next round) or stop.
+      const program = await db.programs.get(w.program)
+      const first = (await db.workouts.where('program').equals(w.program).sortBy('seq'))[0]
+      if (program?.end_action === 'stop' || !first) {
+        await db.track_state.update(trackId, { current_workout: '', status: 'archived', ...stamp() })
+      } else {
+        result.nextId = first.id
+        result.programRestarted = true
+        await db.track_state.update(trackId, { current_workout: first.id, round: (track.round ?? 1) + 1, ...stamp() })
+      }
     }
   }
   if (trackId === TEST_TRACK_ID && status === 'done') result.raised = await raiseFromTest(session.id)

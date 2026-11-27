@@ -3,9 +3,10 @@ import { useRef, useState } from 'react'
 import { plannedSlots, repsLabel } from '../lib/slots'
 import { fmtWhen } from '../lib/dates'
 import { fmtPlates, platesFor, usesBarbell } from '../lib/plates'
+import { suggestFor } from '../lib/programs'
 import { fmtLb, oneRepMaxOn, targetWeight } from '../lib/targets'
 import { today } from '../lib/db'
-import { liftName, type Exercise, type OneRepMax, type SetLog, type Settings, type WorkoutItem } from '../lib/types'
+import { liftName, type Exercise, type OneRepMax, type Program, type SetLog, type Settings, type WorkoutItem } from '../lib/types'
 import { lastLogged, saveSet, type SetSlot } from '../lib/workout'
 import ExerciseHistory from './ExerciseHistory'
 import SetEditor from './SetEditor'
@@ -20,16 +21,19 @@ interface Props {
   logs: SetLog[]
   maxes: OneRepMax[]
   settings: PlateSettings
+  program?: Program
   onGoToLifts: () => void
 }
 
-export default function ExerciseCard({ item, exercise, workoutId, sessionId, logs, maxes, settings, onGoToLifts }: Props) {
+export default function ExerciseCard({ item, exercise, workoutId, sessionId, logs, maxes, settings, program, onGoToLifts }: Props) {
   const [showNotes, setShowNotes] = useState(false)
   const [added, setAdded] = useState(0)
   const [editing, setEditing] = useState<SetSlot | null>(null)
   const [showHistory, setShowHistory] = useState(false)
 
   const last = useLiveQuery(() => lastLogged(item.exercise, sessionId), [item.exercise, sessionId])
+  // The program's progression rule (supplemental programs); null when it has none.
+  const rule = useLiveQuery(() => suggestFor(item, program, exercise, sessionId), [item.id, program?.id, program?.progression, sessionId])
 
   const lift = item.base_lift_override || exercise?.base_lift || ''
   const orm = lift ? oneRepMaxOn(maxes, lift, today()) : undefined
@@ -53,6 +57,7 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
       .filter((l) => l.completed && l.weight_lb !== null && (l.set_index < s.setIndex || (l.set_index === s.setIndex && l.side !== s.side)))
       .sort((a, b) => b.set_index - a.set_index || (a.local_updated < b.local_updated ? 1 : -1))[0]
     if (earlier) return { weight: earlier.weight_lb, fromPct: false }
+    if (rule) return { weight: rule.weight, fromPct: rule.weight !== null }
     const prev = last?.sets.find((x) => x.set_index === s.setIndex && x.side === s.side) ?? last?.sets[last.sets.length - 1]
     return { weight: prev?.weight_lb ?? null, fromPct: false }
   }
@@ -67,7 +72,9 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
     const reps = existing?.actual_reps ?? s.planned?.reps ?? s.planned?.seconds ?? null
     const w = existing?.weight_lb ?? weight
     const needsWeight = exercise?.load_type === 'weight' || exercise?.load_type === undefined
-    if ((w === null && needsWeight) || reps === null) {
+    // A rep range (8–12) needs the reps you actually did, so always ask.
+    const isRange = s.planned?.rep_max !== undefined && s.planned.rep_max !== s.planned.reps
+    if ((w === null && needsWeight) || reps === null || isRange) {
       setEditing(s)
       return
     }
@@ -107,6 +114,31 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
           {fmtWhen(last!.date, { day: 'numeric', month: 'short' })}
           {last!.sets.length > 1 && (
             <span className="muted"> ({last!.sets.map((x) => `${x.weight_lb === null ? 'BW' : fmtLb(x.weight_lb)}×${x.actual_reps}`).join(', ')})</span>
+          )}
+        </div>
+      )}
+
+      {rule?.note && (
+        <div className="meta suggest">
+          {rule.weight !== null ? (
+            <>
+              Suggested weight: <b>{fmtLb(rule.weight)} lb</b>
+            </>
+          ) : (
+            rule.note
+          )}
+        </div>
+      )}
+      {(item.form_cue || item.video_url) && (
+        <div className="meta cue">
+          {item.form_cue}
+          {item.video_url && (
+            <>
+              {item.form_cue ? ' · ' : ''}
+              <a href={item.video_url} target="_blank" rel="noreferrer">
+                Watch
+              </a>
+            </>
           )}
         </div>
       )}
@@ -152,7 +184,9 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
         <SetEditor
           title={`${exercise?.name ?? item.raw_name} · set ${editing.setIndex}${editing.side ? ` (${editing.side})` : ''}`}
           initialWeight={logFor(editing)?.weight_lb ?? suggested(editing).weight}
-          initialReps={logFor(editing)?.actual_reps ?? editing.planned?.reps ?? editing.planned?.seconds ?? null}
+          initialReps={
+            logFor(editing)?.actual_reps ?? editing.planned?.rep_max ?? editing.planned?.reps ?? editing.planned?.seconds ?? null
+          }
           onCancel={() => setEditing(null)}
           plateSettings={usesBarbell(exercise) ? settings : null}
           onSave={async (weight, reps, completed) => {

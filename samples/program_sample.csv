@@ -1,0 +1,7 @@
+phase,phase_name,weeks,workout,order,exercise,sets,rep_min,rep_max,load_type,weight_jump,unilateral,form_cue,video_url
+1,Foundation,4,A,1,Standing Dumbbell Curl,3,8,12,weight,2.5,no,"Elbows pinned at sides, no swinging",https://www.youtube.com/results?search_query=dumbbell+curl+form
+1,Foundation,4,A,2,Diamond Push-Up,2,10,20,bodyweight,,no,Kneel if needed,
+1,Foundation,4,B,1,Hammer Curl,3,10,15,weight,2.5,no,"Palms facing in, control the lowering",
+1,Foundation,4,B,2,Plank,3,45,45,time,,no,"Squeeze glutes, ribs down",
+2,Volume,4,A,1,Single-Arm Overhead Extension,3,10,12,weight,2.5,yes,Elbow still and close to head,
+2,Volume,4,B,1,Chair Dip,3,12,20,bodyweight,,no,Feet farther out makes it harder,
