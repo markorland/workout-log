@@ -120,8 +120,8 @@ h2 {
   justify-content: space-between;
   gap: 0.5rem;
   padding: calc(env(safe-area-inset-top) + 0.5rem) 0.75rem 0.5rem;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(12px);
+  /* Solid, no blur: iOS Safari renders a sticky header with backdrop-filter blurry. */
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 .brand {
@@ -140,8 +140,7 @@ h2 {
   left: 0;
   right: 0;
   display: flex;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--card);
   border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom);
 }
