@@ -78,6 +78,33 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - **Reset after a break:** Timeline → Main → **Back to Beginner's Cycle 1** moves to #1 but keeps the round. If you're halfway through Round 2, you stay in Round 2 and restart from Beginner's Cycle 1. "Set as current" also keeps the round.
 - **Tests:** stay outside the rounds; supplemental programs keep their own restart rounds.
 
+## Withings: get weight and body fat automatically
+
+**Problem.** Bodyweight and body fat are typed in by hand on the Body screen, or imported from a CSV. A Withings scale already measures both at every weigh-in.
+
+**Wanted.** Weigh-ins from the Withings scale show up in the app on their own, as Bodyweight (lb) and Body fat (%) measurements, with no typing and no CSV.
+
+**How it could work.**
+
+- **Run it on the server, not the phone.** A PocketBase JS hook (a new `pb_hooks/` folder in the Dockge stack) checks Withings every few hours with `cronAdd` and writes the new weigh-ins into `body_measurements`. The phone picks them up on its next sync like any other change. The app can't do this itself: it's only open while you're using it, and an iPhone web app can't run in the background.
+- **Withings developer app.** Register a free app in the Withings developer portal to get a client ID and secret. Its callback URL can be the server's Tailscale HTTPS address: the OAuth redirect goes through your browser, so Withings never has to reach the server.
+- **Connect once.** A "Connect Withings" button in Settings opens the Withings sign-in, and the server swaps the returned code for tokens. The access token lasts about 3 hours and the refresh token is renewed on each use, so the hook refreshes it on every run. Tokens go in a new collection only the superuser can read.
+- **What to fetch:** the Measure "getmeas" call with measure types 1 (weight, kg) and 6 (fat ratio, %), only for weigh-ins since the last run. Withings sends each value as a number plus a power of ten, so it needs scaling. Weight is converted to lb.
+- **Storing it:**
+  - Write to the existing `bodyweight` and `body_fat` body parts.
+  - Add `withings` to the measurement `source` options, so these readings are easy to tell apart from manual ones.
+  - `body_measurements` allows one value per body part per day. So with several weigh-ins in a day, keep the latest, and never overwrite a value you entered by hand that day.
+- **Check now, from the app:** besides the schedule, a **Get weigh-ins** button asks the server to call Withings straight away.
+  - Where: on the Body screen next to Bodyweight, and in the Withings card in Settings.
+  - How: the hook adds a custom route, e.g. `POST /api/withings/sync`, with `routerAdd`. It only answers a signed-in user and runs the same fetch as the schedule.
+  - The reply says what happened, e.g. "2 new weigh-ins (latest 182.4 lb, 14.8%, today 7:02 AM)" or "No new weigh-ins". The app then syncs, so the new values show up right away.
+  - Repeated taps are harmless: weigh-ins already saved are skipped. The button is disabled while a check is running.
+  - Offline or off Tailscale, the button says it can't reach the server, like the other server actions.
+- **Settings card:** shows Connected / Not connected, the last weigh-in fetched, when the server last checked, and the Get weigh-ins button.
+- **No push from Withings.** Withings can notify a server instantly when you weigh in, but only at a URL it can reach over the internet. The server is only on Tailscale, so it checks on a schedule instead. A few hours' delay is fine for weight.
+
+**To confirm when building:** the measure type numbers, token lifetimes and rate limits against the current Withings API docs. Also check whether the hook needs outbound internet access opened from the NAS.
+
 ## In-app program builder and Duplicate
 
 **Deferred from Phase 6.** Supplemental programs come in by CSV upload. The plan also had:
