@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { useSyncStatus } from '../lib/useSyncStatus'
+import History from './History'
 import { db, getMeta } from '../lib/db'
 import { pb, signedInEmail, signOut } from '../lib/pb'
 import { checkAndSync, pullTemplates } from '../lib/sync'
@@ -13,6 +14,7 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
   const templatesAt = useLiveQuery(() => getMeta('templatesAt'))
   const [persisted, setPersisted] = useState<boolean | null>(null)
   const [busy, setBusy] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     void navigator.storage?.persisted?.().then(setPersisted)
@@ -54,9 +56,40 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
         .join(', ')
     : ''
 
+  if (showHistory) {
+    return (
+      <div>
+        <button
+          className="back-link"
+          onClick={() => {
+            setShowHistory(false)
+            window.scrollTo({ top: 0 })
+          }}
+        >
+          ‹ Settings
+        </button>
+        <History />
+      </div>
+    )
+  }
+
   return (
     <div className="settings">
       <h1>Settings</h1>
+
+      <button
+        className="card nav-row"
+        onClick={() => {
+          setShowHistory(true)
+          window.scrollTo({ top: 0 })
+        }}
+      >
+        <span>
+          <b>Workout history</b>
+          <span className="muted small"> · past sessions and what you logged</span>
+        </span>
+        <span className="chev">›</span>
+      </button>
 
       <article className="card">
         <h2>Sync</h2>

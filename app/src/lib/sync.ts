@@ -7,6 +7,7 @@
 // upload dirty rows, then download anything changed on the server.
 import { db, getMeta, pendingCount, setMeta, SYNCED_TABLES, TEMPLATE_TABLES } from './db'
 import { countRecords, fetchAll, healthCheck, isSignedIn, latestUpdated, refreshAuth, upsert } from './pb'
+import { uploadQueuedPhotos } from './photos'
 
 export type ConnState = 'checking' | 'syncing' | 'synced' | 'not_connected' | 'offline' | 'signed_out' | 'error'
 
@@ -138,6 +139,7 @@ async function runCheck(): Promise<void> {
     }
     if (!(await getMeta('templatesAt')) || (await templatesChanged())) await pullTemplates()
     await push()
+    await uploadQueuedPhotos()
     await pull()
     await setMeta('syncedOnce', new Date().toISOString())
     set({ state: 'synced', lastSync: new Date().toISOString(), pending: await pendingCount(), message: '' })

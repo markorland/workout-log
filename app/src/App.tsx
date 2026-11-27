@@ -3,14 +3,14 @@ import ConnectionBadge from './components/ConnectionBadge'
 import ScrollToTop from './components/ScrollToTop'
 import { isSignedIn } from './lib/pb'
 import { startSyncTriggers } from './lib/sync'
-import History from './screens/History'
+import Body from './screens/Body'
 import Lifts from './screens/Lifts'
 import Login from './screens/Login'
 import SettingsScreen from './screens/Settings'
 import Timeline from './screens/Timeline'
 import Today from './screens/Today'
 
-type Tab = 'today' | 'timeline' | 'history' | 'lifts' | 'settings'
+type Tab = 'today' | 'timeline' | 'lifts' | 'body' | 'settings'
 
 export default function App() {
   const [signedIn, setSignedIn] = useState(isSignedIn())
@@ -65,8 +65,8 @@ export default function App() {
             }}
           />
         )}
-        {tab === 'history' && <History />}
         {tab === 'lifts' && <Lifts onOpenToday={() => go('today')} />}
+        {tab === 'body' && <Body />}
         {tab === 'settings' && <SettingsScreen onSignedOut={() => setSignedIn(false)} />}
       </main>
       {tab !== 'today' && <ScrollToTop />}
@@ -75,8 +75,8 @@ export default function App() {
           [
             ['today', 'Today'],
             ['timeline', 'Timeline'],
-            ['history', 'History'],
             ['lifts', 'Lifts'],
+            ['body', 'Body'],
             ['settings', 'Settings'],
           ] as const
         ).map(([id, label]) => (

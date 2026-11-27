@@ -55,6 +55,10 @@ export async function buildJson(): Promise<string> {
       one_rep_maxes: strip(await db.one_rep_maxes.toArray()),
       track_state: strip(await db.track_state.toArray()),
       settings: strip(await db.settings.toArray()),
+      body_parts: strip(await db.body_parts.toArray()),
+      body_measurements: strip(await db.body_measurements.toArray()),
+      // Photo details only; the images stay on the server.
+      progress_photos: strip(await db.progress_photos.toArray()),
     },
     null,
     2,

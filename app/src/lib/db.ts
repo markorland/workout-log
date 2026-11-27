@@ -2,7 +2,8 @@
 // sync engine uploads rows marked dirty and downloads server changes.
 import Dexie, { type EntityTable } from 'dexie'
 import type {
-  Exercise, Meta, OneRepMax, Program, Session, SetLog, Settings, TrackState, Workout, WorkoutItem,
+  BodyMeasurement, BodyPart, Exercise, Meta, OneRepMax, Program, ProgressPhoto, QueuedPhoto, Session, SetLog, Settings,
+  ThumbCache, TrackState, Workout, WorkoutItem,
 } from './types'
 
 export class AppDB extends Dexie {
@@ -16,6 +17,11 @@ export class AppDB extends Dexie {
   track_state!: EntityTable<TrackState, 'id'>
   settings!: EntityTable<Settings, 'id'>
   meta!: EntityTable<Meta, 'key'>
+  body_parts!: EntityTable<BodyPart, 'id'>
+  body_measurements!: EntityTable<BodyMeasurement, 'id'>
+  progress_photos!: EntityTable<ProgressPhoto, 'id'>
+  photo_queue!: EntityTable<QueuedPhoto, 'id'>
+  photo_thumbs!: EntityTable<ThumbCache, 'id'>
 
   constructor(name = 'workout-log') {
     super(name)
@@ -30,6 +36,14 @@ export class AppDB extends Dexie {
       track_state: 'id, program, dirty',
       settings: 'id, dirty',
       meta: 'key',
+    })
+    // Phase 7: body tracking and progress photos.
+    this.version(2).stores({
+      body_parts: 'id, key, sort_order, dirty',
+      body_measurements: 'id, date, body_part, dirty',
+      progress_photos: 'id, date, pose, dirty',
+      photo_queue: 'id, created',
+      photo_thumbs: 'id, cached',
     })
   }
 }
@@ -50,7 +64,9 @@ export async function setMeta(key: string, value: string): Promise<void> {
 }
 
 /** App-written tables, in upload order (parents before children). */
-export const SYNCED_TABLES = ['sessions', 'set_logs', 'one_rep_maxes', 'track_state', 'settings'] as const
+export const SYNCED_TABLES = [
+  'sessions', 'set_logs', 'one_rep_maxes', 'track_state', 'settings', 'body_parts', 'body_measurements', 'progress_photos',
+] as const
 export type SyncedTable = (typeof SYNCED_TABLES)[number]
 
 /** Template tables, downloaded once (and on "Refresh templates"). */
@@ -73,12 +89,19 @@ export function today(d: Date = new Date()): string {
 }
 
 export function newId(): string {
-  return crypto.randomUUID()
+  // randomUUID only exists on HTTPS pages; over plain HTTP (e.g. http://10.0.0.200:8090)
+  // build the same random v4 UUID from getRandomValues, which works everywhere.
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40 // version 4
+  b[8] = (b[8] & 0x3f) | 0x80 // variant
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
 }
 
 /** Count of rows waiting to upload. */
 export async function pendingCount(): Promise<number> {
   let n = 0
   for (const t of SYNCED_TABLES) n += await db.table(t).where('dirty').equals(1).count()
-  return n
+  return n + (await db.photo_queue.count())
 }

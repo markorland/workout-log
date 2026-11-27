@@ -159,6 +159,60 @@ export interface Settings extends Local {
   connect_shortcut_name: string
 }
 
+// ---- body tracking (Phase 7) ------------------------------------------------
+
+export type BodyUnit = 'in' | 'lb' | '%'
+
+export interface BodyPart extends Local {
+  id: string
+  key: string // e.g. "arm"
+  label: string // e.g. "Arm"
+  has_side: boolean
+  unit: BodyUnit
+  sort_order: number
+  custom: boolean
+}
+
+export interface BodyMeasurement extends Local {
+  id: string // "bm-<date>-<key>-<side|x>": one per day, part and side
+  date: string // "YYYY-MM-DD 00:00:00.000Z"
+  body_part: string // BodyPart id
+  side: '' | 'left' | 'right'
+  value: number
+  unit: BodyUnit
+  notes: string
+  source: 'manual' | 'csv'
+  deleted_at: string
+}
+
+export interface ProgressPhoto extends Local {
+  id: string
+  date: string
+  pose: string
+  image: string // file name on the server
+  thumbnail: string
+  notes: string
+  deleted_at: string
+}
+
+/** A photo taken on the phone, waiting to upload (blobs stay on the phone until then). */
+export interface QueuedPhoto {
+  id: string
+  date: string
+  pose: string
+  notes: string
+  image: Blob
+  thumbnail: Blob
+  created: string
+}
+
+/** Small cached thumbnails of recent photos, for viewing offline. */
+export interface ThumbCache {
+  id: string // photo id
+  blob: Blob
+  cached: string
+}
+
 export interface Meta {
   key: string
   value: string

@@ -370,7 +370,6 @@ A new Body screen logs measurements and photos, charts each body part over time,
   - You can add custom sites.
 - **Quick entry.** One form lists your usual sites with the last value shown beside each, so a check-in takes about a minute.
 - **Charts.** One chart per body part and side, with change since start. Charts are grouped by body part in a set order (head to toe, editable) with left before right. Each chart is titled "Side Body part" (e.g. "Left Arm", "Right Calf"); parts with no side are titled by the part alone ("Waist").
-- **Reminder.** A "measure your arms" nudge on the Body screen every 2 weeks while the arm program is active, since the workbook asks for that.
 
 **CSV import**
 
@@ -552,6 +551,31 @@ There are seven phases. Each one ends with something you can use, and you can lo
 7. **Body measurements and photos**
    - Build the Body screen: quick entry, charts, CSV import with preview and duplicate check, export. Add progress photos with on-phone resize, an offline upload queue, protected file storage and the compare view.
    - Done when: a CSV in the format above imports cleanly, a "Right Arm" style name is split into arm + right in the preview, and a photo taken offline appears on the server after reconnecting.
+   - Status (Nov 27, 2026): built. No server change was needed (the collections were created in Phase 2).
+     - **Body tab** (sixth tab) with Measure | Charts | Photos.
+     - **Measure:**
+       - a check-in for any date, listing every site head to toe with the last value in gray; blank fields are skipped
+       - one value per day, part and side, so saving again the same day replaces it
+       - "+ Add a site" for custom sites
+       - CSV import and export
+     - **CSV import:** a preview with errors by row, new sites to confirm, the "Right Arm" → Arm + right split, cm→in and kg→lb conversions, and duplicates skipped unless you choose Overwrite.
+     - **Charts:** one per part and side, head to toe, left before right ("Left Arm"), with change since the first value. A single value shows as a note until there's a second.
+     - **Reminder:** an arm-measurement reminder was built, then removed at your request.
+     - **Photos:**
+       - camera or library, resized on the phone to 2,000 px JPEG (EXIF/GPS removed), with a 400 px thumbnail
+       - kept in an upload queue until the server is reachable, then uploaded by sync
+       - stored protected and viewed with short-lived file tokens
+       - only the latest 16 thumbnails cached on the phone
+       - pose filter; compare view with side by side (default) or a slider, and that day's measurements underneath
+     - **Export JSON** now includes body parts, measurements and photo details.
+     - **Tested:**
+       - unit tests for saving, series order, CSV import (conversions, splits, errors, duplicates, new sites) and export
+       - end to end on a local server: a check-in, an import, charts, a photo upload (protected: 404 without a token; JPEG with no EXIF), an offline photo uploaded after reconnecting, and compare in both modes
+     - **Also done in this phase:**
+       - The arm-measurement reminder was removed.
+       - Ids work on plain-HTTP pages (a `crypto.getRandomValues` fallback for `randomUUID`), so the app works from a computer at `http://10.0.0.200:8090`.
+       - History moved from the tab bar into Settings → Workout history; the tabs are Today, Timeline, Lifts, Body, Settings.
+     - **Done (Nov 27, 2026):** tested on the iPhone and from the computer. All seven build phases are complete.
 
 **Sync design (phase 3).** Every write goes to Dexie first with a client-generated UUID and `updated_at`. A sync runs whenever a connection check succeeds: on app open or return to the foreground, on `online`, on a tap of the status badge, and on "Finish workout". Logging a set doesn't trigger one. It pushes unsynced rows and pulls anything newer than the last sync time. Conflicts are rare with one user, so the newest `updated_at` wins. Templates are pulled once and cached; re-pull only when the importer runs again.
 
