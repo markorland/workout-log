@@ -1,22 +1,26 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
 import ExerciseCard from '../components/ExerciseCard'
+import TestDueCard from '../components/TestDueCard'
 import { db, getMeta } from '../lib/db'
 import { blockGroup } from '../lib/slots'
 import { checkAndSync } from '../lib/sync'
-import { DEFAULT_SETTINGS } from '../lib/targets'
-import type { WorkoutItem } from '../lib/types'
-import { ensureMainTrack, finishWorkout, MAIN_TRACK_ID } from '../lib/workout'
+import { DEFAULT_SETTINGS, fmtLb } from '../lib/targets'
+import { liftName, type WorkoutItem } from '../lib/types'
+import {
+  activeWorkoutId, endTest, ensureMainTrack, finishWorkout, MAIN_TRACK_ID, showTestDueCard, skipWorkout, testDueInfo,
+  trackOf, type FinishResult,
+} from '../lib/workout'
 
 export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
   const ready = useLiveQuery(async () => !!(await getMeta('syncedOnce')) && (await db.workouts.count()) > 0)
-  const track = useLiveQuery(() => db.track_state.get(MAIN_TRACK_ID))
+  const mainTrack = useLiveQuery(() => db.track_state.get(MAIN_TRACK_ID))
+  const workoutId = useLiveQuery(() => activeWorkoutId())
 
   useEffect(() => {
-    if (ready && !track) void ensureMainTrack()
-  }, [ready, track])
+    if (ready && mainTrack === undefined) void ensureMainTrack()
+  }, [ready, mainTrack])
 
-  const workoutId = track?.current_workout
   const data = useLiveQuery(async () => {
     if (!workoutId) return null
     const workout = await db.workouts.get(workoutId)
@@ -29,12 +33,15 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
       .filter((s) => !s.finished_at && !s.deleted_at)
       .sort((a, b) => (a.started_at < b.started_at ? 1 : -1))[0]
     const logs = session ? await db.set_logs.where('session').equals(session.id).toArray() : []
-    return { workout, program, items, exercises, mainCount, session, logs }
+    const testDays = trackOf(workoutId) === 'test' ? await db.workouts.where('program').equals(workout.program).count() : 0
+    return { workout, program, items, exercises, mainCount, session, logs, testDays }
   }, [workoutId])
 
+  const testCard = useLiveQuery(async () => ((await showTestDueCard()) ? await testDueInfo() : null), [workoutId])
   const maxes = useLiveQuery(() => db.one_rep_maxes.toArray()) ?? []
   const settings = useLiveQuery(() => db.settings.get('settings')) ?? DEFAULT_SETTINGS
-  const [finishing, setFinishing] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<FinishResult | null>(null)
 
   const groups = useMemo(() => {
     const out: { key: string; items: WorkoutItem[] }[] = []
@@ -58,31 +65,64 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
   }
   if (!data) return <div className="empty">Loading…</div>
 
-  const { workout, program, exercises, mainCount, session, logs } = data
+  const { workout, program, exercises, mainCount, session, logs, testDays } = data
+  const isTest = trackOf(workout.id) === 'test'
   const exMap = new Map(exercises.filter(Boolean).map((e) => [e!.id, e!]))
   const done = logs.filter((l) => l.completed && !l.deleted_at).length
-  const weekDay = workout.week && workout.day ? `Week ${workout.week} · Day ${workout.day}` : workout.title
+  const weekDay = isTest
+    ? `Day ${workout.seq} of ${testDays}`
+    : workout.week && workout.day
+      ? `Week ${workout.week} · Day ${workout.day}`
+      : workout.title
 
-  async function finish() {
-    const msg = done ? 'Finish this workout?' : 'No sets logged yet. Finish and move to the next workout anyway?'
+  async function close(kind: 'finish' | 'skip') {
+    const msg =
+      kind === 'skip'
+        ? 'Skip this workout? It’s marked skipped and you move to the next one.'
+        : done
+          ? 'Finish this workout?'
+          : 'No sets logged yet. Finish and move to the next workout anyway?'
     if (!window.confirm(msg)) return
-    setFinishing(true)
+    setBusy(true)
     try {
-      await finishWorkout(workout.id)
+      const r = kind === 'finish' ? await finishWorkout(workout.id) : await skipWorkout(workout.id)
+      if (r.raised.length || r.testComplete) setResult(r)
       window.scrollTo({ top: 0 })
       void checkAndSync({ resetRetries: true })
     } finally {
-      setFinishing(false)
+      setBusy(false)
     }
   }
 
   return (
     <div className="today">
+      {result && (
+        <article className="card result">
+          <h2>{result.testComplete ? 'Test complete' : 'Test day done'}</h2>
+          {result.raised.length ? (
+            <ul>
+              {result.raised.map((r) => (
+                <li key={r.lift}>
+                  {liftName(r.lift)}: {r.from === null ? 'new max' : `${fmtLb(r.from)} →`} <b>{fmtLb(r.to)} lb</b>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No maxes beaten this time; your 1RMs stay as they were.</p>
+          )}
+          <button onClick={() => setResult(null)}>OK</button>
+        </article>
+      )}
+
+      {!isTest && testCard && <TestDueCard dueDate={testCard.dueDate} />}
+
       <section className="workout-head">
-        <div className="program">{program?.name}</div>
+        <div className="program">{isTest ? `Test · ${program?.name}` : program?.name}</div>
         <h1>{weekDay}</h1>
         <div className="muted">
-          #{workout.seq} of {mainCount} · originally {new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}
+          {isTest
+            ? 'Keep adding attempts until you miss. Beaten maxes update when you finish.'
+            : `#${workout.seq} of ${mainCount} · originally ${new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}`}
           {session && ` · ${done} set${done === 1 ? '' : 's'} logged`}
         </div>
       </section>
@@ -106,9 +146,24 @@ export default function Today({ onGoToLifts }: { onGoToLifts: () => void }) {
         </section>
       ))}
 
-      <button className="primary finish" disabled={finishing} onClick={() => void finish()}>
-        {finishing ? 'Finishing…' : 'Finish workout'}
+      <button className="primary finish" disabled={busy} onClick={() => void close('finish')}>
+        {busy ? 'Saving…' : isTest ? `Finish day ${workout.seq}` : 'Finish workout'}
       </button>
+      {isTest ? (
+        <button
+          className="secondary-wide"
+          disabled={busy}
+          onClick={() => {
+            if (window.confirm('Stop the test? Days you finished keep their results.')) void endTest()
+          }}
+        >
+          Stop test
+        </button>
+      ) : (
+        <button className="secondary-wide" disabled={busy} onClick={() => void close('skip')}>
+          Skip workout
+        </button>
+      )}
     </div>
   )
 }

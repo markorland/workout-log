@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import ConnectionBadge from './components/ConnectionBadge'
 import { isSignedIn } from './lib/pb'
 import { startSyncTriggers } from './lib/sync'
+import History from './screens/History'
 import Lifts from './screens/Lifts'
 import Login from './screens/Login'
 import SettingsScreen from './screens/Settings'
+import Timeline from './screens/Timeline'
 import Today from './screens/Today'
 
-type Tab = 'today' | 'lifts' | 'settings'
+type Tab = 'today' | 'timeline' | 'history' | 'lifts' | 'settings'
 
 export default function App() {
   const [signedIn, setSignedIn] = useState(isSignedIn())
@@ -17,6 +19,11 @@ export default function App() {
     if (!signedIn) return
     return startSyncTriggers()
   }, [signedIn])
+
+  const go = (t: Tab) => {
+    setTab(t)
+    window.scrollTo({ top: 0 })
+  }
 
   useEffect(() => {
     // Ask iOS not to evict the offline data (best effort).
@@ -28,18 +35,25 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand">Workout Log</span>
+        <span className="brand">
+          <img src="/favicon-64.png" alt="" width={26} height={26} className="brand-icon" />
+          <span className="brand-name">Workout Log</span>
+        </span>
         <ConnectionBadge />
       </header>
       <main className="content">
-        {tab === 'today' && <Today onGoToLifts={() => setTab('lifts')} />}
-        {tab === 'lifts' && <Lifts />}
+        {tab === 'today' && <Today onGoToLifts={() => go('lifts')} />}
+        {tab === 'timeline' && <Timeline onOpenToday={() => go('today')} />}
+        {tab === 'history' && <History />}
+        {tab === 'lifts' && <Lifts onOpenToday={() => go('today')} />}
         {tab === 'settings' && <SettingsScreen onSignedOut={() => setSignedIn(false)} />}
       </main>
       <nav className="tabbar">
         {(
           [
             ['today', 'Today'],
+            ['timeline', 'Timeline'],
+            ['history', 'History'],
             ['lifts', 'Lifts'],
             ['settings', 'Settings'],
           ] as const
@@ -47,10 +61,7 @@ export default function App() {
           <button
             key={id}
             className={tab === id ? 'tab active' : 'tab'}
-            onClick={() => {
-              setTab(id)
-              window.scrollTo({ top: 0 })
-            }}
+            onClick={() => go(id)}
           >
             {label}
           </button>

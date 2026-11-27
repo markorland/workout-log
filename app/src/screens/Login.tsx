@@ -28,8 +28,10 @@ export default function Login({ onSignedIn }: { onSignedIn: () => void }) {
 
   return (
     <div className="login">
-      <h1>Workout Log</h1>
-      <p className="muted">Sign in with your app login (not the admin account).</p>
+      <header className="login-head">
+        <img src="/icon-192.png" alt="" width={96} height={96} className="login-icon" />
+        <h1>Workout Log</h1>
+      </header>
       <form onSubmit={submit}>
         <label>
           Email

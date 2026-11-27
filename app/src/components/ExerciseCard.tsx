@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { plannedSlots, repsLabel } from '../lib/slots'
+import { fmtWhen } from '../lib/dates'
 import { fmtLb, oneRepMaxOn, targetWeight } from '../lib/targets'
 import { today } from '../lib/db'
 import { liftName, type Exercise, type OneRepMax, type SetLog, type Settings, type WorkoutItem } from '../lib/types'
 import { lastLogged, saveSet, type SetSlot } from '../lib/workout'
+import ExerciseHistory from './ExerciseHistory'
 import SetEditor from './SetEditor'
 
 type PlateSettings = Pick<Settings, 'bar_weight_lb' | 'fractional_plates'>
@@ -24,6 +26,7 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
   const [showNotes, setShowNotes] = useState(false)
   const [added, setAdded] = useState(0)
   const [editing, setEditing] = useState<SetSlot | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
 
   const last = useLiveQuery(() => lastLogged(item.exercise, sessionId), [item.exercise, sessionId])
 
@@ -76,7 +79,11 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
     <article className="card">
       <header className="card-head">
         <span className="block-tag">{item.block}</span>
-        <h2>{exercise?.name ?? item.raw_name}</h2>
+        <h2>
+          <button className="name-link" onClick={() => setShowHistory(true)}>
+            {exercise?.name ?? item.raw_name}
+          </button>
+        </h2>
       </header>
       <div className="scheme">{item.prescription || item.raw_scheme}</div>
 
@@ -95,10 +102,10 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
       )}
       {top && (
         <div className="meta">
-          Last: {fmtLb(top.weight_lb)} lb × {top.actual_reps},{' '}
-          {new Date(last!.date.replace(' ', 'T')).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+          Last: {top.weight_lb === null ? 'BW' : `${fmtLb(top.weight_lb)} lb`} × {top.actual_reps},{' '}
+          {fmtWhen(last!.date, { day: 'numeric', month: 'short' })}
           {last!.sets.length > 1 && (
-            <span className="muted"> ({last!.sets.map((x) => `${fmtLb(x.weight_lb)}×${x.actual_reps}`).join(', ')})</span>
+            <span className="muted"> ({last!.sets.map((x) => `${x.weight_lb === null ? 'BW' : fmtLb(x.weight_lb)}×${x.actual_reps}`).join(', ')})</span>
           )}
         </div>
       )}
@@ -131,6 +138,14 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
         </button>
       )}
 
+      {showHistory && (
+        <ExerciseHistory
+          exerciseId={item.exercise}
+          title={exercise?.name ?? item.raw_name}
+          lift={lift || undefined}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
       {editing && (
         <SetEditor
           title={`${exercise?.name ?? item.raw_name} · set ${editing.setIndex}${editing.side ? ` (${editing.side})` : ''}`}

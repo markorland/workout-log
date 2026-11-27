@@ -119,7 +119,7 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: calc(env(safe-area-inset-top) + 0.5rem) 1rem 0.5rem;
+  padding: calc(env(safe-area-inset-top) + 0.5rem) 0.75rem 0.5rem;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -162,14 +162,16 @@ h2 {
 .badge-wrap {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 .badge {
+  position: relative;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
-  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.55rem;
   border-radius: 999px;
 }
 .badge .dot {
@@ -184,11 +186,52 @@ h2 {
 .badge.amber .dot {
   background: var(--amber);
 }
+/* Changes waiting to sync: a corner bubble, like an app-icon count. */
+.pending-count {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
 .connect {
   font-size: 0.8rem;
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
   text-decoration: none;
   white-space: nowrap;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0; /* lets the name shorten with … instead of wrapping */
+  white-space: nowrap;
+}
+.brand-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px; /* rounded like a home-screen icon */
+  flex-shrink: 0;
+}
+.brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.badge-wrap {
+  flex-shrink: 0;
 }
 
 /* ---- cards ---- */
@@ -346,6 +389,24 @@ h2 {
   border-radius: 18px 18px 0 0;
   padding: 1rem 1rem calc(env(safe-area-inset-bottom) + 1rem);
 }
+/* Editor dialog: sits under the header so the keyboard never covers it. */
+.sheet-backdrop.top {
+  align-items: flex-start;
+}
+.sheet.dialog {
+  margin: calc(env(safe-area-inset-top) + 4rem) 0.75rem 0;
+  border-radius: 18px;
+  padding-bottom: 1rem;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 30%);
+}
+.sheet .hint {
+  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+}
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
 .sheet h3 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
@@ -419,6 +480,270 @@ dd {
   gap: 0.9rem;
   margin-top: 1.25rem;
 }
+.login-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+.login-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 22%; /* the icon file is full-bleed; round it like a home-screen icon */
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+}
 .login .primary {
   padding: 0.85rem;
+}
+
+/* ---- phase 4 ---- */
+.name-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  text-align: left;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+.secondary-wide {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.8rem;
+  color: var(--muted);
+}
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.test-due {
+  border-color: var(--accent);
+}
+.test-due h2,
+.result h2 {
+  margin-bottom: 0.3rem;
+}
+.result {
+  border-color: var(--done);
+}
+.result ul {
+  margin: 0.4rem 0 0.75rem;
+  padding-left: 1.1rem;
+}
+
+/* sheets that hold more content */
+.sheet.tall {
+  max-height: 88dvh;
+  overflow-y: auto;
+}
+.sheet-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.sheet-title h3 {
+  margin: 0;
+}
+.sheet h4 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.session-list,
+.preview-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.preview-items {
+  margin: 0.5rem 0 1rem;
+}
+
+/* chart: one series, recessive grid and axes */
+.chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.chart-readout {
+  font-size: 0.95rem;
+  min-height: 1.4rem;
+}
+.chart .grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.chart .axis {
+  fill: var(--muted);
+  font-size: 10px;
+}
+.chart .line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.chart .dot {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.chart .dot.selected {
+  fill: var(--card);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.chart .hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+/* timeline */
+.search-wrap {
+  position: relative;
+  margin: 0.25rem 0 0.9rem;
+}
+.search {
+  padding-right: 2.75rem;
+}
+/* Our own clear button replaces the browser's (iOS Safari doesn't always show one). */
+.search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-clear {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.program-card {
+  padding: 0;
+  overflow: hidden;
+}
+.program-card.current {
+  border-color: var(--accent);
+}
+.program-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  border: none;
+  border-radius: 0;
+  padding: 0.85rem 0.9rem;
+  background: none;
+}
+.chev {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+.workout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.5rem 0.5rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.workout-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.6rem 4.2rem 1fr auto;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: left;
+  padding: 0.55rem 0.5rem;
+  border-color: transparent;
+  background: var(--bg);
+}
+.workout-row.is-current {
+  border-color: var(--accent);
+}
+.w-label {
+  font-weight: 600;
+}
+.w-names {
+  font-size: 0.8rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.w-seq {
+  font-size: 0.8rem;
+}
+.mark {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1.5px solid var(--line);
+}
+.mark.done {
+  border-color: var(--done);
+  color: var(--done);
+}
+.mark.skipped {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+.mark.in_progress {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* history */
+.history-sets {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+.pill {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.pill.done {
+  border-color: var(--done);
+  color: var(--done);
+}
+.tab {
+  font-size: 0.85rem;
 }

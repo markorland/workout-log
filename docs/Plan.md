@@ -279,7 +279,7 @@ Not in v1: rest timer, RPE, and progression suggestions for the main barbell pro
 Tests replace the one-off test and max weeks that used to sit in the timeline.
 
 - **Templates.** MAX WEEK (D1 Snatch + Front Squat, D2 Clean & Jerk + Back Squat; `60/4, 70/3, 80/2, 85/1, 90/1, 95/1, 101/1`, then keep going until failure or the lift breaks down) is the only test. It works from your current 1RMs, and all four of its lifts have one. If one were ever missing, that lift's card shows the % only and links to Lifts, like any other workout.
-- **When.** A test is due 3 months after the last test session (`settings.test_interval_months`). It waits for the next program boundary, so a block is never split. Today then shows a "Test due" card before the first workout of the next program. Running the test doesn't move your place in the main timeline.
+- **When.** A test is due 3 months after the last test session (`settings.test_interval_months`). Before any test has been done, the clock starts from the earliest 1RM entry, so the first test is due about Feb 26, 2027. It waits for the next program boundary, so a block is never split. Today then shows a "Test due" card before the first workout of the next program. Running the test doesn't move your place in the main timeline.
 - **Skipping.** The "Test due" card has two buttons besides Start:
   - **Skip:** passes on this test. It's saved as a skipped test session, which resets the clock, so the next test is due 3 months later.
   - **Not now:** hides the card for this block only. It comes back at the next program boundary, and the 3-month clock isn't reset.
@@ -492,6 +492,20 @@ There are seven phases. Each one ends with something you can use, and you can lo
    - Timeline with jump-to, program grouping, search, exercise history chart, and the History screen.
    - Tests: the "Test due" card at the program boundary with Skip and Not now, "Start test", open-ended attempts, and the automatic 1RM raise.
    - Done when: you can set any main workout as current, see past logs for any lift, and a finished MAX WEEK raises only the 1RMs you beat.
+   - Status (Nov 27, 2026): built.
+     - **Timeline tab:** programs in order, collapsible, opening on the current one; done / skipped / in-progress marks; search by program or exercise; a workout preview with "Set as current".
+     - **History tab:** finished and skipped sessions, newest first.
+     - **Exercise history sheet:** a top-set chart (one series; tap a point for its value) plus every session. Opens from an exercise name on Today or History, or a lift on Lifts (which also lists its 1RM history).
+     - **Today:** Skip workout.
+     - **Tests:** the Test due card (Start / Skip / Not now) and "Start test" on Lifts. MAX WEEK runs on its own track (`track-test`) and leaves the main position alone. After each test day, beaten maxes are raised (source "test"), with a summary shown.
+     - **Tested:** unit tests cover skip, set-as-current, the program boundary, the 3-month clock, "Not now", the full MAX WEEK flow (only the beaten Snatch max raised; the missed attempt and the lower Front Squat ignored) and exercise history. The offline-sync end-to-end test still passes. Phone-size screenshots were checked.
+     - **Also done in this phase:**
+       - Login screen with the app icon.
+       - Search clear (×) button.
+       - Weight/reps editor that opens under the header with the page locked, so the keyboard no longer scrolls it, and gray current values that typing replaces.
+       - One-line header: the app icon, a state-only badge, a corner bubble with the waiting count, and a "Connect" button.
+       - `docs/Future-Improvements.md`: percentages for the early workouts, and looping back after the last workout with a round counter.
+     - **Done (Nov 27, 2026):** tested on the iPhone.
 5. **Polish**
    - Plate math, CSV/JSON export, a check that the scheduled PocketBase backups are landing in `pb_data/backups/` and reaching Backblaze, app icon and splash screen.
    - Optional later: an ntfy reminder on training days, Home Assistant sensor for sessions this week.
