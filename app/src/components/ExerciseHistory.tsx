@@ -114,7 +114,8 @@ function TopSetChart({ sessions }: { sessions: ExerciseSession[] }) {
   const minW = Math.min(...pts.map((p) => p.w))
   const maxW = Math.max(...pts.map((p) => p.w))
   const span = Math.max(10, maxW - minW)
-  const lo = Math.floor((minW - span * 0.15) / 5) * 5
+  // Pad below the lowest point, but a weight scale never goes under zero.
+  const lo = Math.max(0, Math.floor((minW - span * 0.15) / 5) * 5)
   const hi = Math.ceil((maxW + span * 0.15) / 5) * 5
   const t0 = pts[0].t
   const t1 = pts[pts.length - 1].t

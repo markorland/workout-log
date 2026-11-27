@@ -29,6 +29,11 @@ PB_TEST_ADMIN=... PB_TEST_ADMIN_PASS=... npx vitest run sync.integration
 
 It writes test data, so point it at a throwaway PocketBase, not the real one.
 
+## Icons and launch screens
+
+- App icons live in `public/` (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon-64.png`); the 1024 px master is `assets/icon-1024.png`.
+- iOS launch screens are generated from the master: `python app/scripts/make_splash.py` (from the repo root, needs Pillow). It writes `public/splash/` and prints the `<link>` tags used in `index.html`.
+
 ## Deploy to the NAS
 
 PocketBase serves the app from its `pb_public` folder, so the app and the API

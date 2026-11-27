@@ -747,3 +747,32 @@ dd {
 .tab {
   font-size: 0.85rem;
 }
+
+/* ---- phase 5: plate math under each set ---- */
+.set-plates {
+  grid-column: 2 / -1;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  letter-spacing: 0.01em;
+}
+
+/* "Your plates can't make this weight" message in the editor */
+.plate-warn {
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: 1px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 12%, var(--card));
+  font-size: 0.9rem;
+}
+.plate-warn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.plate-warn-actions button {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.88rem;
+}

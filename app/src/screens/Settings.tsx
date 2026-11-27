@@ -4,6 +4,7 @@ import { useSyncStatus } from '../lib/useSyncStatus'
 import { db, getMeta } from '../lib/db'
 import { pb, signedInEmail, signOut } from '../lib/pb'
 import { checkAndSync, pullTemplates } from '../lib/sync'
+import { buildCsv, buildJson, exportName, shareOrDownload } from '../lib/exportData'
 import { fmtLb } from '../lib/targets'
 
 export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => void }) {
@@ -23,6 +24,18 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
       await pullTemplates()
     } catch (e) {
       window.alert(`Couldn't download workouts: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function doExport(kind: 'csv' | 'json') {
+    setBusy(kind)
+    try {
+      if (kind === 'csv') await shareOrDownload(await buildCsv(), exportName('csv'), 'text/csv')
+      else await shareOrDownload(await buildJson(), exportName('json'), 'application/json')
+    } catch (e) {
+      window.alert(`Export failed: ${e instanceof Error ? e.message : e}`)
     } finally {
       setBusy('')
     }
@@ -86,6 +99,22 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
           <dd>{settings ? `${settings.test_interval_months} months` : '—'}</dd>
         </dl>
         <p className="muted">Targets round to the nearest weight these plates can make. Editing comes in a later phase.</p>
+      </article>
+
+      <article className="card">
+        <h2>Export</h2>
+        <p className="muted">
+          A copy of everything logged on this phone. CSV opens in Excel or Numbers (one row per set); JSON is a full backup
+          of sessions, sets, 1RMs and settings.
+        </p>
+        <div className="row-actions">
+          <button disabled={busy === 'csv'} onClick={() => void doExport('csv')}>
+            {busy === 'csv' ? 'Preparing…' : 'Export CSV'}
+          </button>
+          <button disabled={busy === 'json'} onClick={() => void doExport('json')}>
+            {busy === 'json' ? 'Preparing…' : 'Export JSON'}
+          </button>
+        </div>
       </article>
 
       <button className="danger" onClick={doSignOut}>

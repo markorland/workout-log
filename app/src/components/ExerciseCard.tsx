@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { plannedSlots, repsLabel } from '../lib/slots'
 import { fmtWhen } from '../lib/dates'
+import { fmtPlates, platesFor, usesBarbell } from '../lib/plates'
 import { fmtLb, oneRepMaxOn, targetWeight } from '../lib/targets'
 import { today } from '../lib/db'
 import { liftName, type Exercise, type OneRepMax, type SetLog, type Settings, type WorkoutItem } from '../lib/types'
@@ -126,6 +127,7 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
               log={logFor(s)}
               suggestion={suggested(s)}
               bodyweight={exercise?.load_type === 'bodyweight'}
+              plateSettings={usesBarbell(exercise) ? settings : null}
               onTap={() => void tap(s)}
               onLongPress={() => setEditing(s)}
             />
@@ -152,6 +154,7 @@ export default function ExerciseCard({ item, exercise, workoutId, sessionId, log
           initialWeight={logFor(editing)?.weight_lb ?? suggested(editing).weight}
           initialReps={logFor(editing)?.actual_reps ?? editing.planned?.reps ?? editing.planned?.seconds ?? null}
           onCancel={() => setEditing(null)}
+          plateSettings={usesBarbell(exercise) ? settings : null}
           onSave={async (weight, reps, completed) => {
             await saveSet(workoutId, editing, { weight_lb: weight, actual_reps: reps, completed })
             setEditing(null)
@@ -167,6 +170,7 @@ function SetRow({
   log,
   suggestion,
   bodyweight,
+  plateSettings,
   onTap,
   onLongPress,
 }: {
@@ -174,6 +178,7 @@ function SetRow({
   log: SetLog | undefined
   suggestion: { weight: number | null; fromPct: boolean }
   bodyweight: boolean
+  plateSettings: PlateSettings | null
   onTap: () => void
   onLongPress: () => void
 }) {
@@ -222,7 +227,22 @@ function SetRow({
         <span className="check" aria-label={done ? 'done' : 'not done'}>
           {done ? '✓' : ''}
         </span>
+        {plateSettings && weight !== null && weight !== undefined && weight > plateSettings.bar_weight_lb && (
+          <PlateLine weight={weight} settings={plateSettings} />
+        )}
       </button>
     </li>
+  )
+}
+
+/** Plates per side under a set's weight, e.g. "Per side: 25 · 10 · 1 · 0.75". */
+function PlateLine({ weight, settings }: { weight: number; settings: PlateSettings }) {
+  const p = platesFor(weight, settings)
+  if (!p.perSide.length) return null
+  return (
+    <span className="set-plates">
+      Per side: {fmtPlates(p.perSide)}
+      {Math.abs(p.diff) > 0.01 && ` (loads ${fmtLb(p.total)} lb)`}
+    </span>
   )
 }

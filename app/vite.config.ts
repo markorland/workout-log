@@ -30,6 +30,8 @@ export default defineConfig({
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/_\//],
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        // Launch screens are fetched by iOS itself; no need to cache all ten offline.
+        globIgnores: ['splash/**'],
       },
     }),
   ],

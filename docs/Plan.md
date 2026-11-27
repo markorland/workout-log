@@ -509,6 +509,17 @@ There are seven phases. Each one ends with something you can use, and you can lo
 5. **Polish**
    - Plate math, CSV/JSON export, a check that the scheduled PocketBase backups are landing in `pb_data/backups/` and reaching Backblaze, app icon and splash screen.
    - Optional later: an ntfy reminder on training days, Home Assistant sensor for sessions this week.
+   - Status (Nov 27, 2026): built.
+     - **Plate math:** under each barbell set, e.g. "Per side: 10 · 10 · 1 · 0.75 · 0.5". It uses the fewest plates, with standard plates unlimited and the fractional plates from Settings, and shows the actual load if a typed weight can't be made exactly. Not shown for dumbbell, kettlebell, machine, cable or EZ-bar lifts.
+     - **Export:** Settings → Export CSV (one row per set) or Export JSON (full backup of sessions, sets, 1RMs, positions and settings), through the iOS share sheet.
+     - **Launch screens:** the icon on its dark background, for 10 iPhone screen sizes (`app/scripts/make_splash.py`). The app icon itself was done in Phase 3.
+     - **Backups:** PocketBase scheduled backups (deploy README step 6) write to `pb_data/backups/`, which Backblaze covers. Check they're landing.
+     - **Tested:** unit tests for plate math and export. Phone-size screenshots checked.
+     - **Also done in this phase:**
+       - The chart's scale never goes below zero.
+       - A "The plates can't make X lb" message in the editor for barbell sets, offering the nearest weight below or above, or keeping the typed weight.
+     - **Not done:** the optional ntfy and Home Assistant extras.
+     - **Done (Nov 27, 2026):** tested on the iPhone.
 6. **Supplemental programs**
    - Write `import_supplemental.py` for program CSVs in the format above. Build the Programs screen: sheet upload with preview, the in-app program builder, Duplicate and Archive. Load arm\_program.csv, starting at Phase 1, Session 1, and turn on the Barbell Accessory track. Add a Supplemental card per active program, Pause/Resume, the supplemental timeline tab, per-program progression rules and Restart.
    - Done when: Barbell Accessory and the arm program are both active, each with its own card and place; you can do an arm session on a rest day, neither the main workout nor Barbell Accessory moves; the arm program's next suggested lb follows double progression, and Barbell Accessory shows last weights with no suggestion.

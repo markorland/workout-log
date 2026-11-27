@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { isLoadable, loadableNeighbors } from '../lib/plates'
 import { fmtLb } from '../lib/targets'
+import type { Settings } from '../lib/types'
 import { useScrollLock } from '../lib/useScrollLock'
 
 interface Props {
@@ -8,6 +10,8 @@ interface Props {
   initialReps: number | null
   onSave: (weight: number | null, reps: number | null, completed: boolean) => Promise<void>
   onCancel: () => void
+  /** Plate settings for barbell lifts; null means don't check loadability. */
+  plateSettings?: Pick<Settings, 'bar_weight_lb' | 'fractional_plates'> | null
 }
 
 const toNum = (s: string): number | null => {
@@ -20,22 +24,29 @@ const toNum = (s: string): number | null => {
  * Fields start empty with the current value shown in gray: typing replaces
  * it, and leaving a field empty keeps the gray value.
  */
-export default function SetEditor({ title, initialWeight, initialReps, onSave, onCancel }: Props) {
+export default function SetEditor({ title, initialWeight, initialReps, onSave, onCancel, plateSettings }: Props) {
   useScrollLock()
   const weightRef = useRef<HTMLInputElement>(null)
   const [weight, setWeight] = useState('')
   const [reps, setReps] = useState('')
   const [busy, setBusy] = useState(false)
+  const [warn, setWarn] = useState<{ typed: number; below: number | null; above: number | null } | null>(null)
 
   useEffect(() => {
     // Focus without letting the browser scroll the page.
     weightRef.current?.focus({ preventScroll: true })
   }, [])
 
-  async function save(completed: boolean) {
+  async function save(completed: boolean, weightOverride?: number) {
+    const w = weightOverride ?? toNum(weight) ?? initialWeight
+    // A barbell weight the plates can't make: ask before saving.
+    if (completed && weightOverride === undefined && plateSettings && w !== null && w > plateSettings.bar_weight_lb && !isLoadable(w, plateSettings)) {
+      setWarn({ typed: w, ...loadableNeighbors(w, plateSettings) })
+      return
+    }
     setBusy(true)
     try {
-      await onSave(toNum(weight) ?? initialWeight, toNum(reps) ?? initialReps, completed)
+      await onSave(w, toNum(reps) ?? initialReps, completed)
     } finally {
       setBusy(false)
     }
@@ -60,7 +71,10 @@ export default function SetEditor({ title, initialWeight, initialReps, onSave, o
                 enterKeyHint="next"
                 placeholder={initialWeight === null ? '—' : fmtLb(initialWeight)}
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                  setWeight(e.target.value)
+                  setWarn(null)
+                }}
               />
             </label>
             <label>
@@ -74,7 +88,28 @@ export default function SetEditor({ title, initialWeight, initialReps, onSave, o
               />
             </label>
           </div>
-          <p className="hint muted">Type to replace the gray value, or leave it to keep it.</p>
+          {warn ? (
+            <div className="plate-warn" role="alert">
+              <b>The plates can’t make {fmtLb(warn.typed)} lb.</b>
+              <div className="plate-warn-actions">
+                {warn.below !== null && (
+                  <button type="button" onClick={() => void save(true, warn.below!)}>
+                    Use {fmtLb(warn.below)} lb
+                  </button>
+                )}
+                {warn.above !== null && (
+                  <button type="button" onClick={() => void save(true, warn.above!)}>
+                    Use {fmtLb(warn.above)} lb
+                  </button>
+                )}
+                <button type="button" onClick={() => void save(true, warn.typed)}>
+                  Keep {fmtLb(warn.typed)} lb
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="hint muted">Type to replace the gray value, or leave it to keep it.</p>
+          )}
           <div className="sheet-actions">
             <button type="button" onClick={onCancel} disabled={busy}>
               Cancel
