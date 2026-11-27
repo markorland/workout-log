@@ -73,6 +73,35 @@ describe('main track', () => {
   })
 })
 
+describe('looping the main timeline', () => {
+  beforeEach(async () => {
+    // p1 plays the Beginner's Cycle; p2 is the first real program.
+    await db.programs.update('p1', { name: "Beginner's Cycle 1" })
+    await db.programs.update('p2', { name: 'RTF' })
+  })
+
+  it('after the last workout, restarts at the first non-Beginner program and counts the round up', async () => {
+    expect((await wk.loopStartWorkout())!.id).toBe('main-0003')
+    await wk.setCurrentMain('main-0004') // the last main workout
+    const r = await wk.finishWorkout('main-0004')
+    expect(r.nextId).toBe('main-0003')
+    expect(r.mainLooped).toEqual({ round: 2, title: 'RTF W1D3' })
+    expect(await db.track_state.get(wk.MAIN_TRACK_ID)).toMatchObject({ current_workout: 'main-0003', round: 2 })
+  })
+
+  it('"Back to Beginner\'s Cycle 1" keeps the round, and new sessions record it', async () => {
+    await wk.setCurrentMain('main-0004')
+    await wk.finishWorkout('main-0004') // now round 2
+    await wk.resetToBeginning()
+    expect(await db.track_state.get(wk.MAIN_TRACK_ID)).toMatchObject({ current_workout: 'main-0001', round: 2 })
+    const it1 = (await db.workout_items.get('main-0001-01'))!
+    await wk.saveSet('main-0001', slot(it1, 1), { weight_lb: 90, actual_reps: 1, completed: true })
+    const s = (await db.sessions.toArray()).find((x) => x.workout === 'main-0001')!
+    expect(s.round).toBe(2)
+    expect(wk.sessionRound({})).toBe(1) // sessions from before rounds count as round 1
+  })
+})
+
 describe('test due', () => {
   it('counts 3 months from the starting maxes, then from the last test', async () => {
     expect(await wk.testBaseline()).toBe('2026-11-26')

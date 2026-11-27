@@ -115,6 +115,8 @@ export interface Session extends Local {
   bodyweight_lb: number | null
   notes: string
   deleted_at: string
+  /** Round of the track when the session started (1, 2…). Older sessions may not have it. */
+  round?: number
 }
 
 export interface SetLog extends Local {

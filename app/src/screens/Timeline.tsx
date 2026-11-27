@@ -4,7 +4,7 @@ import SupplementalPrograms from '../components/SupplementalPrograms'
 import { db } from '../lib/db'
 import type { Program, Workout } from '../lib/types'
 import { useScrollLock } from '../lib/useScrollLock'
-import { MAIN_TRACK_ID, setCurrentMain } from '../lib/workout'
+import { MAIN_TRACK_ID, resetToBeginning, sessionRound, setCurrentMain } from '../lib/workout'
 
 type Status = 'done' | 'skipped' | 'in_progress' | 'not_started'
 const MARK: Record<Status, string> = { done: '✓', skipped: '–', in_progress: '•', not_started: '' }
@@ -55,17 +55,20 @@ function MainTimeline({ onOpenToday }: { onOpenToday: () => void }) {
       list.push(exercises.get(it.exercise) ?? it.raw_name)
       names.set(it.workout, list)
     }
+    const track = await db.track_state.get(MAIN_TRACK_ID)
+    const round = track?.round || 1
     const status = new Map<string, Status>()
     for (const s of await db.sessions.toArray()) {
-      if (s.deleted_at) continue
+      // Done marks are per round: each pass through the program starts fresh.
+      if (s.deleted_at || sessionRound(s) !== round) continue
       const cur = status.get(s.workout)
       const st: Status = s.status === 'done' ? 'done' : s.status === 'skipped' ? 'skipped' : 'in_progress'
       // done beats skipped beats in progress
       const rank = { done: 3, skipped: 2, in_progress: 1, not_started: 0 }
       if (!cur || rank[st] > rank[cur]) status.set(s.workout, st)
     }
-    const current = (await db.track_state.get(MAIN_TRACK_ID))?.current_workout
-    return { programs, workouts, names, status, current }
+    const current = track?.current_workout
+    return { programs, workouts, names, status, current, round }
   })
 
   const view = useMemo(() => {
@@ -90,7 +93,7 @@ function MainTimeline({ onOpenToday }: { onOpenToday: () => void }) {
   }, [data])
 
   if (!data) return null
-  const { names, status, current } = data
+  const { names, status, current, round } = data
   const searching = query.trim() !== ''
 
   const toggle = (id: string) => {
@@ -105,6 +108,21 @@ function MainTimeline({ onOpenToday }: { onOpenToday: () => void }) {
 
   return (
     <div>
+      <div className="round-bar">
+        <span>
+          <b>Round {round}</b>
+          <span className="muted small"> · after the last workout it loops to RTF and counts up</span>
+        </span>
+        <button
+          onClick={async () => {
+            if (!window.confirm(`Go back to Beginner's Cycle 1? You stay in Round ${round}.`)) return
+            await resetToBeginning()
+            onOpenToday()
+          }}
+        >
+          Back to Beginner&rsquo;s Cycle 1
+        </button>
+      </div>
       <div className="search-wrap">
         <input
           className="search"

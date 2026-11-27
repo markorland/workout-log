@@ -86,11 +86,41 @@ export async function startSession(workoutId: string): Promise<Session> {
   if (open) return open
   const s: Session = {
     id: newId(), workout: workoutId, track: trackOf(workoutId), status: '', started_at: pbDate(), finished_at: '',
-    bodyweight_lb: null, notes: '', deleted_at: '', ...stamp(),
+    bodyweight_lb: null, notes: '', deleted_at: '', round: await roundFor(workoutId), ...stamp(),
   }
   await db.sessions.put(s)
   await refreshPending()
   return s
+}
+
+/** The round a new session belongs to: its track's round (tests count as the main round). */
+async function roundFor(workoutId: string): Promise<number> {
+  const kind = trackOf(workoutId)
+  if (kind === 'supplemental') {
+    const w = await db.workouts.get(workoutId)
+    return (w && (await db.track_state.get(`track-${w.program}`))?.round) || 1
+  }
+  return (await db.track_state.get(MAIN_TRACK_ID))?.round || 1
+}
+
+/** A session's round (sessions from before rounds were recorded count as round 1). */
+export const sessionRound = (s: Pick<Session, 'round'>) => s.round || 1
+
+/**
+ * Where the main timeline restarts after its last workout: the first workout
+ * of the first program that isn't a Beginner's Cycle (RTF W1D1). The
+ * Beginner's Cycles stay reachable with "Back to Beginner's Cycle 1".
+ */
+export async function loopStartWorkout(): Promise<Workout | undefined> {
+  const programs = new Map((await db.programs.where('track').equals('main').toArray()).map((p) => [p.id, p]))
+  const mains = (await db.workouts.toArray()).filter((w) => w.id.startsWith('main-')).sort((a, b) => a.seq - b.seq)
+  return mains.find((w) => !/^beginner'?s cycle/i.test(programs.get(w.program)?.name ?? '')) ?? mains[0]
+}
+
+/** "Back to Beginner's Cycle 1": jump to workout #1, keeping the current round. */
+export async function resetToBeginning(): Promise<void> {
+  const first = (await db.workouts.toArray()).filter((w) => w.id.startsWith('main-')).sort((a, b) => a.seq - b.seq)[0]
+  if (first) await setCurrentMain(first.id)
 }
 
 export interface SetSlot {
@@ -142,6 +172,8 @@ export interface FinishResult {
   testComplete: boolean
   /** A supplemental program reached its end and started round 2, 3… */
   programRestarted?: boolean
+  /** The main timeline reached its end and looped back: the new round and where it restarts. */
+  mainLooped?: { round: number; title: string }
 }
 
 /** Close the session ("done" or "skipped") and move its track to the next workout. */
@@ -160,6 +192,16 @@ async function closeWorkout(workoutId: string, status: 'done' | 'skipped'): Prom
     if (next) {
       result.nextId = next.id
       await db.track_state.update(trackId, { current_workout: next.id, program: next.program, ...stamp() })
+    } else if (kind === 'main') {
+      // End of the main timeline: loop back (skipping the Beginner's Cycles) and count the round up.
+      const start = await loopStartWorkout()
+      if (start) {
+        const round = (track.round || 1) + 1
+        result.nextId = start.id
+        const program = await db.programs.get(start.program)
+        result.mainLooped = { round, title: `${program?.name ?? ''} ${start.week && start.day ? `W${start.week}D${start.day}` : start.title}`.trim() }
+        await db.track_state.update(trackId, { current_workout: start.id, program: start.program, round, ...stamp() })
+      }
     } else if (kind === 'test') {
       result.testComplete = true
       await db.track_state.update(trackId, { current_workout: '', status: 'archived', ...stamp() })

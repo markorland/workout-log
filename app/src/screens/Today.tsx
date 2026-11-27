@@ -103,7 +103,7 @@ export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, o
     setBusy(true)
     try {
       const r = kind === 'finish' ? await finishWorkout(workout.id) : await skipWorkout(workout.id)
-      if (r.raised.length || r.testComplete || r.programRestarted) setResult(r)
+      if (r.raised.length || r.testComplete || r.programRestarted || r.mainLooped) setResult(r)
       if (isSup) onCloseSupplemental()
       window.scrollTo({ top: 0 })
       void checkAndSync({ resetRetries: true })
@@ -116,8 +116,15 @@ export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, o
     <div className="today">
       {result && (
         <article className="card result">
-          <h2>{result.programRestarted ? 'Program complete' : result.testComplete ? 'Test complete' : 'Test day done'}</h2>
-          {result.programRestarted ? (
+          <h2>
+            {result.mainLooped || result.programRestarted ? 'Program complete' : result.testComplete ? 'Test complete' : 'Test day done'}
+          </h2>
+          {result.mainLooped ? (
+            <p className="muted">
+              Starting <b>Round {result.mainLooped.round}</b> at {result.mainLooped.title}. The Beginner&rsquo;s Cycles are skipped;
+              use Timeline &rarr; Back to Beginner&rsquo;s Cycle 1 after a break.
+            </p>
+          ) : result.programRestarted ? (
             <p className="muted">Starting the next round at Phase 1. Use heavier weights than last time.</p>
           ) : result.raised.length ? (
             <ul>
@@ -172,7 +179,7 @@ export default function Today({ onGoToLifts, supWorkoutId, onOpenSupplemental, o
             ? 'Keep adding attempts until you miss. Beaten maxes update when you finish.'
             : isSup
               ? `Session ${workout.seq} of ${programCount}${supTrack && supTrack.round > 1 ? ` · Round ${supTrack.round}` : ''}`
-              : `#${workout.seq} of ${mainCount} · originally ${new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}`}
+              : `#${workout.seq} of ${mainCount} · Round ${mainTrack?.round || 1} · originally ${new Date(workout.original_date.slice(0, 10) + 'T12:00').toLocaleDateString()}`}
           {session && ` · ${done} set${done === 1 ? '' : 's'} logged`}
         </div>
       </section>

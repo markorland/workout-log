@@ -4,7 +4,7 @@ import ExerciseHistory from '../components/ExerciseHistory'
 import { db } from '../lib/db'
 import { fmtWhen } from '../lib/dates'
 import { fmtLb } from '../lib/targets'
-import { sessionTime } from '../lib/workout'
+import { sessionRound, sessionTime } from '../lib/workout'
 import type { SetLog } from '../lib/types'
 
 const when = (d: string) => fmtWhen(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -55,7 +55,10 @@ export default function History() {
             </div>
             <span className={`pill ${s.status || 'open'}`}>{s.status === 'skipped' ? 'Skipped' : s.status === 'done' ? 'Done' : 'Open'}</span>
           </div>
-          <div className="muted">{when(sessionTime(s))}</div>
+          <div className="muted">
+            {when(sessionTime(s))}
+            {s.track !== 'test' && ` · Round ${sessionRound(s)}`}
+          </div>
           {groups.length > 0 && (
             <ul className="history-sets">
               {groups.map((g) => (

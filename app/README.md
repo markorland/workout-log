@@ -40,12 +40,12 @@ PocketBase serves the app from its `pb_public` folder, so the app and the API
 share one HTTPS address.
 
 1. Build: `npm run build` (output in `app/dist/`).
-2. Copy the **contents** of `app/dist/` to your SMB share as `/mnt/HDDs/nas/barbell-dist/`.
-3. In a TrueNAS shell, replace what's in `pb_public`:
+2. Copy the `app/dist` folder to your SMB share as is (it lands at `/mnt/HDDs/nas/dist/`; no renaming needed).
+3. In a TrueNAS shell, replace what's in `pb_public`. The copy puts the folder's contents straight into `pb_public`:
 
    ```sh
    sudo rm -rf /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_public/*
-   sudo cp -r --no-preserve=mode,ownership /mnt/HDDs/nas/barbell-dist/. /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_public/
+   sudo cp -r --no-preserve=mode,ownership /mnt/HDDs/nas/dist/. /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_public/
    ```
 
 No restart needed. An installed app picks up the new version the next time

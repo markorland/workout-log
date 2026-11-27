@@ -1187,3 +1187,17 @@ select {
 .tab {
   font-size: 0.82rem;
 }
+
+/* Timeline: current round and the reset button */
+.round-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+.round-bar button {
+  font-size: 0.88rem;
+  padding: 0.45rem 0.75rem;
+}

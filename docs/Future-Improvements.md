@@ -2,7 +2,7 @@
 
 Ideas and known gaps to come back to after the main build phases. Not scheduled yet.
 
-## Add percentages to the early workouts (or remove them)
+## ✅ Done: Add percentages to the early workouts (or remove them)
 
 **Problem.** 70 workouts in the main timeline have no percentage targets. Their schemes are plain sets × reps (`3x5`, `2x4, 3x3`), so the app shows no target weights for them. You type the weight, or it reuses your last one. The rest of the program is written in % of a 1RM.
 
@@ -54,7 +54,7 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - **Unchanged:** Sots Press, bench, presses, rows and accessories keep plain sets × reps.
 - **To apply:** re-run the importer, then `python -m importer.upload`. The app re-downloads templates on its next sync.
 
-## Loop back to the start after the last workout
+## ✅ Done: Loop back to the start after the last workout
 
 **Problem.** The last workout in the main timeline is Block 2025-10, W2D2 (#314). Finishing it has nowhere to go, so the position stays put and Today keeps showing that same workout.
 
@@ -69,6 +69,14 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - Show a short message when it wraps ("Program complete. Starting round 2 at RTF W1D1."), so it isn't a surprise.
 
 **Related:** starting the loop at RTF skips the Beginner's Cycles, but the rest of the no-percentage block is still in the loop: March 2021 – August 2022, #61–94. See "Add percentages to the early workouts" above.
+
+**Status (Nov 27, 2026): done.**
+
+- **Wrap:** finishing or skipping #314 moves to the first main workout that isn't a Beginner's Cycle (found by program name, so it doesn't depend on #37) and adds 1 to the round. Today shows "Program complete. Starting Round 2 at RTF W1D1."
+- **Round shown:** in the Today header ("#37 of 314 · Round 2"), at the top of Timeline → Main, and on each History session. Each session records its round in a new `round` field (migration `1764400000_session_round.js`). Older sessions without it count as Round 1.
+- **Done marks:** Timeline counts only sessions from the current round, so each pass starts fresh.
+- **Reset after a break:** Timeline → Main → **Back to Beginner's Cycle 1** moves to #1 but keeps the round. If you're halfway through Round 2, you stay in Round 2 and restart from Beginner's Cycle 1. "Set as current" also keeps the round.
+- **Tests:** stay outside the rounds; supplemental programs keep their own restart rounds.
 
 ## In-app program builder and Duplicate
 

@@ -165,7 +165,7 @@ Being on the home network only gets someone to the login screen. They still need
 
 ## Updating the server for a new phase
 
-When a phase adds a migration file (Phase 6 added `1764300000_supplemental_programs.js`):
+When a phase adds a migration file (Phase 6 added `1764300000_supplemental_programs.js`; the loop-back feature added `1764400000_session_round.js`):
 
 1. Copy the new file from `deploy/pocketbase/pb_migrations/` to your share, then into the stack's `pb_migrations/` folder (`sudo cp --no-preserve=mode,ownership …`, as in step 2).
 2. Restart the stack in Dockge. New migrations are applied on start; the log shows `Applied 1764300000_supplemental_programs.js`.
