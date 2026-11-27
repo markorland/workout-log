@@ -39,6 +39,21 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 
 **Decision:** to be made later; adding percentages is the likely route.
 
+**Status (Nov 27, 2026): done for the five programs; the Beginner's Cycles stay as written (your choice).**
+
+- **Approach:** a `scheme_overrides` section in `data/config/overrides.yaml`, which the importer applies by program, exercise and week. It replaces only the prescription line, keeps the coach's notes, and logs each change in `review.csv` (111 changes).
+- **Percentages:** the original sets and reps are kept, and the percentage steps up 2.5% every week, as these programs' notes say to add weight weekly. The levels come from the coach's later percentage programs:
+
+  | Lift type | W1 | W2 | W3 | W4 |
+  | --- | --- | --- | --- | --- |
+  | Olympic lifts, jerks, Snatch Balance | (60/4)2, (65/3)3 | (62.5/4)2, (67.5/3)3 | (65/4)2, (70/3)3 | (67.5/4)2, (72.5/3)3 |
+  | Pulls, extensions, segmented deadlifts | (70/4)2, (80/3)3 | (72.5/4)2, (82.5/3)3 | (75/4)2, (85/3)3 | (77.5/4)2, (87.5/3)3 |
+  | Back / Front Squat | (70/5)4 | (72.5/5)4 | (75/5)4 | (77.5/5)4 |
+  | April 2022 (one week) | squats (70/5)4, RDL (60/5)4 | | | |
+
+- **Unchanged:** Sots Press, bench, presses, rows and accessories keep plain sets × reps.
+- **To apply:** re-run the importer, then `python -m importer.upload`. The app re-downloads templates on its next sync.
+
 ## Loop back to the start after the last workout
 
 **Problem.** The last workout in the main timeline is Block 2025-10, W2D2 (#314). Finishing it has nowhere to go, so the position stays put and Today keeps showing that same workout.

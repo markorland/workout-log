@@ -80,6 +80,25 @@ def test_review_logs_fixes_and_moves(result):
     assert "accessory_day" in kinds and "test_template" in kinds and "rerun_dropped" in kinds
 
 
+def test_scheme_overrides_add_percentages_by_week():
+    overrides = {
+        **OVERRIDES,
+        "scheme_overrides": [
+            {"programs": ["Sample Cycle"], "exercises": ["Front Squat"], "weeks": {1: "(70/5)4"}},
+        ],
+    }
+    r = build(read_csv(SAMPLE), ALIASES, overrides, MAXES)
+    items = {(i["workout"], i["block"]): i for i in r["templates"]["workout_items"]}
+    fsq = items[("main-0003", "B")]  # "4x5" in the export
+    assert fsq["scheme_type"] == "pct"
+    assert fsq["prescription"] == "(70/5)4"
+    assert fsq["planned_sets"] == [{"pct": 70, "reps": 5}] * 4
+    # Other exercises in the program are untouched.
+    assert items[("main-0003", "A")]["prescription"] == "2x4, 3x3"
+    assert r["counts"]["scheme_overrides"] == 1
+    assert any(x["kind"] == "scheme_override" and x["raw"] == "4x5" for x in r["review"])
+
+
 def test_seeded_maxes(result):
     assert result["templates"]["one_rep_maxes"] == [
         {"lift": "snatch", "weight_lb": 128, "date": "2026-11-26", "source": "manual", "note": ""}

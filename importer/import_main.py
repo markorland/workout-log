@@ -49,6 +49,32 @@ def read_csv(path: Path) -> list[dict]:
         return list(csv.DictReader(f))
 
 
+def scheme_rules(overrides: dict) -> list[dict]:
+    """Normalize `scheme_overrides` rules: programs, exercises (folded names) and {week: prescription}."""
+    out = []
+    for rule in overrides.get("scheme_overrides") or []:
+        weeks = {int(k): str(v) for k, v in (rule.get("weeks") or {}).items()}
+        out.append({
+            "programs": set(rule.get("programs") or []),
+            "exercises": {fold(e) for e in rule.get("exercises") or []},
+            "weeks": weeks,
+            "all_weeks": rule.get("all_weeks"),
+        })
+    return out
+
+
+def override_for(rules: list[dict], program: str, exercise: str, week: int | None) -> str | None:
+    """The replacement prescription for this program/exercise/week, if a rule covers it."""
+    for rule in rules:
+        if program not in rule["programs"] or fold(exercise) not in rule["exercises"]:
+            continue
+        if week in rule["weeks"]:
+            return rule["weeks"][week]
+        if rule["all_weeks"]:
+            return str(rule["all_weeks"])
+    return None
+
+
 def build(records: list[dict], aliases: dict, overrides: dict, maxes: dict) -> dict:
     """Run the pipeline in memory. Returns templates, review rows and stats."""
     table = AliasTable.from_dict(aliases)
@@ -106,11 +132,20 @@ def build(records: list[dict], aliases: dict, overrides: dict, maxes: dict) -> d
     programs, out_workouts, items = [], [], []
     ex_usage: dict[str, dict] = collections.defaultdict(lambda: {"types": set(), "per_side": False, "timed": False})
 
-    def add_items(w, wid: str):
+    rules = scheme_rules(overrides)
+
+    def add_items(w, wid: str, program: str = ""):
         for order, r in enumerate(w.rows, start=1):
             key = exercise_key(r.name)
             name = display[key]
             s = parse_cell(r.reps)
+            # scheme_overrides: replace the prescription line (keep the coach's notes).
+            new = override_for(rules, program, name, w.week)
+            if new:
+                original = s.prescription
+                notes = s.notes
+                s = parse_cell(new + ("\n" + notes if notes else ""))
+                note("scheme_override", w, r, raw=original, detail=f"{original} -> {new}")
             default, override = base_lift_for_item(name, s.note_base_lift)
             if s.fixes:
                 note("auto_fix", w, r, raw=s.prescription, detail=f"{s.fixed}  [{', '.join(s.fixes)}]")
@@ -147,7 +182,7 @@ def build(records: list[dict], aliases: dict, overrides: dict, maxes: dict) -> d
                 }
             )
 
-    def add_workout(w, wid: str, program_id: str, seq: int, kind: str, phase: str | None):
+    def add_workout(w, wid: str, program_id: str, seq: int, kind: str, phase: str | None, program: str = ""):
         out_workouts.append(
             {
                 "id": wid,
@@ -161,18 +196,19 @@ def build(records: list[dict], aliases: dict, overrides: dict, maxes: dict) -> d
                 "original_date": w.date.isoformat(),
             }
         )
-        add_items(w, wid)
+        add_items(w, wid, program)
 
     # Main timeline
     seq = 0
     for p_index, ws in enumerate(group_programs(split["main"], overrides), start=1):
         pid = f"prog-main-{p_index:03d}"
-        programs.append({"id": pid, "name": program_name(ws, overrides), "track": "main", "seq": p_index,
+        pname = program_name(ws, overrides)
+        programs.append({"id": pid, "name": pname, "track": "main", "seq": p_index,
                          "rotation": "straight", "workouts": len(ws),
                          "start_date": ws[0].date.isoformat(), "end_date": ws[-1].date.isoformat()})
         for w in ws:
             seq += 1
-            add_workout(w, f"main-{seq:04d}", pid, seq, "regular", None)
+            add_workout(w, f"main-{seq:04d}", pid, seq, "regular", None, pname)
 
     # Barbell Accessory: one supplemental program, phases = original groups
     acc = split["accessory"]
@@ -264,6 +300,7 @@ def build(records: list[dict], aliases: dict, overrides: dict, maxes: dict) -> d
         "exercises": len(exercises),
         "raw_exercise_names": len({r.name for r in rows}),
         "auto_fixes": sum(r["kind"] == "auto_fix" for r in review),
+        "scheme_overrides": sum(r["kind"] == "scheme_override" for r in review),
         "needs_review": sum(r["kind"] == "needs_review" for r in review),
     }
     templates = {
@@ -284,7 +321,7 @@ def write_outputs(result: dict, out_dir: Path) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "templates.json").open("w", encoding="utf-8") as f:
         json.dump(result["templates"], f, indent=2, ensure_ascii=False, default=str)
-    order = ["needs_review", "auto_fix", "accessory_day", "test_template", "excluded", "rerun_dropped",
+    order = ["needs_review", "scheme_override", "auto_fix", "accessory_day", "test_template", "excluded", "rerun_dropped",
              "title_fix", "name_merge"]
     rows = sorted(result["review"], key=lambda r: (order.index(r["kind"]) if r["kind"] in order else 99, r["date"]))
     with (out_dir / "review.csv").open("w", encoding="utf-8-sig", newline="") as f:
@@ -309,6 +346,7 @@ def print_summary(result: dict) -> None:
     print(f"Workout items:         {c['items']}")
     print(f"Exercises:             {c['exercises']}  (from {c['raw_exercise_names']} raw names)")
     print(f"Auto-fixed schemes:    {c['auto_fixes']}")
+    print(f"Scheme overrides:      {c['scheme_overrides']}")
     print(f"Needs review:          {c['needs_review']}")
     print(f"Seeded 1RMs:           {len(t['one_rep_maxes'])}")
     acc = [w for w in t["workouts"] if w["id"].startswith("acc-")]
