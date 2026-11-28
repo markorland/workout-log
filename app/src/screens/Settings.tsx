@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSyncStatus } from '../lib/useSyncStatus'
 import History from './History'
 import { db, getMeta } from '../lib/db'
+import { WithingsCard } from '../components/Withings'
 import { pb, signedInEmail, signOut } from '../lib/pb'
 import { checkAndSync, pullTemplates } from '../lib/sync'
 import { buildCsv, buildJson, exportName, shareOrDownload } from '../lib/exportData'
@@ -121,6 +122,8 @@ export default function SettingsScreen({ onSignedOut }: { onSignedOut: () => voi
           </button>
         </div>
       </article>
+
+      <WithingsCard />
 
       <article className="card">
         <h2>Bar and plates</h2>

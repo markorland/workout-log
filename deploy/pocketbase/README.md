@@ -12,6 +12,7 @@ which tracks official PocketBase releases. It's reachable two ways:
 ├── compose.yaml        # pasted into Dockge from the repo
 ├── .env                # admin login, typed into Dockge (never in the repo)
 ├── pb_migrations/      # copied from the repo: collections, rules and default settings, applied on start
+├── pb_hooks/           # copied from the repo: server code (the Withings sync)
 ├── pb_data/            # database, uploaded photos, backups (created on first start)
 └── pb_public/          # the built PWA (Phase 3 deploys copy into here)
 ```
@@ -165,10 +166,62 @@ Being on the home network only gets someone to the login screen. They still need
 
 ## Updating the server for a new phase
 
-When a phase adds a migration file (Phase 6 added `1764300000_supplemental_programs.js`; the loop-back feature added `1764400000_session_round.js`):
+When a phase adds a migration file (Phase 6 added `1764300000_supplemental_programs.js`; the loop-back feature added `1764400000_session_round.js`; Withings added `1764500000_withings.js` plus `pb_hooks/`, see "Withings" below):
 
 1. Copy the new file from `deploy/pocketbase/pb_migrations/` to your share, then into the stack's `pb_migrations/` folder (`sudo cp --no-preserve=mode,ownership …`, as in step 2).
 2. Restart the stack in Dockge. New migrations are applied on start; the log shows `Applied 1764300000_supplemental_programs.js`.
+
+## Withings (weight and body fat)
+
+The server fetches weigh-ins from Withings every 4 hours, and whenever you tap
+**Get weigh-ins** in the app. They're saved as Bodyweight (lb) and Body fat (%).
+A value you type yourself for a day is never replaced. The code is in
+`pb_hooks/withings.pb.js` and `pb_hooks/withings_lib.js`.
+
+Withings has to send your browser back somewhere public after you sign in, and
+this server is only on Tailscale. So the registered address is a small page on
+GitHub Pages (`pages/withings/index.html` in this repo). It passes the sign-in
+straight on to your server and stores nothing.
+
+One-time setup:
+
+1. **Check the redirect page is live:** open
+   `https://markorland.github.io/workout-log/withings/`. It should say
+   "This link didn't come from Workout Log", which is right when opened
+   directly. (GitHub publishes it from `pages/` on every push; repo **Settings →
+   Pages → Source** must be **GitHub Actions**.)
+2. **Withings developer app:** add that exact address, with the trailing `/`,
+   as the registered URL / callback. Copy the app's **Client ID** and
+   **Client Secret**.
+3. **Stack `.env`** (Dockge's .env editor, never in the repo):
+
+   ```
+   WITHINGS_CLIENT_ID=...
+   WITHINGS_CLIENT_SECRET=...
+   ```
+
+4. **`compose.yaml`:** paste in the current version from the repo. It adds the
+   `./pb_hooks:/pb_hooks` volume and the three `WITHINGS_` variables.
+5. **Copy the files** to your share, then on the NAS:
+
+   ```sh
+   sudo mkdir -p /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_hooks
+   sudo cp --no-preserve=mode,ownership /mnt/HDDs/nas/withings.pb.js /mnt/HDDs/nas/withings_lib.js /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_hooks/
+   sudo cp --no-preserve=mode,ownership /mnt/HDDs/nas/1764500000_withings.js /mnt/HDDs/Docker/DockgeStacks/pocketbase/pb_migrations/
+   ```
+
+6. **Restart the stack** (Dockge: Save and Deploy, since compose changed). The
+   log should show `Applied 1764500000_withings.js`. The admin UI then has a
+   `withings_auth` collection.
+7. **Connect:** in the app, Settings → Withings → **Connect Withings**, sign
+   in and allow access. You land on "Withings connected". The first check
+   brings in only today's weigh-in (older history comes from your CSV
+   imports); after that, every check brings in anything new since the last
+   one. Close that page and go back to the app.
+
+If the card says "Not set up on the server yet", the two `WITHINGS_` values
+aren't reaching the container: check `.env` and `compose.yaml`, then redeploy.
+**Disconnect** in Settings forgets the tokens; weigh-ins already saved stay.
 
 ## Starting fresh (erase logged data)
 

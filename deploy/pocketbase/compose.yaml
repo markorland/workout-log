@@ -18,11 +18,17 @@ services:
       - ./pb_data:/pb_data
       - ./pb_public:/pb_public
       - ./pb_migrations:/pb_migrations
+      # Server code: the Withings weigh-in sync (withings.pb.js, withings_lib.js).
+      - ./pb_hooks:/pb_hooks
     # The admin (superuser) account is created or updated from these on every
     # start. Set them in the stack's .env file (Dockge's .env editor), never here.
     environment:
       - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
       - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
+      # Withings developer app (README.md, "Withings"). Also in .env only.
+      - WITHINGS_CLIENT_ID=${WITHINGS_CLIENT_ID}
+      - WITHINGS_CLIENT_SECRET=${WITHINGS_CLIENT_SECRET}
+      - WITHINGS_REDIRECT_URI=${WITHINGS_REDIRECT_URI:-https://markorland.github.io/workout-log/withings/}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8090/api/health"]
       interval: 60s

@@ -1227,3 +1227,21 @@ select {
   font-size: 0.88rem;
   padding: 0.45rem 0.75rem;
 }
+
+/* Body screen: Withings line under Bodyweight */
+.withings-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  margin: 0 0 0.2rem;
+}
+.withings-row button {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+}
+.withings-row .saved {
+  flex-basis: 100%;
+  margin: 0;
+}

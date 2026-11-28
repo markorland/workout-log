@@ -183,7 +183,8 @@ export interface BodyMeasurement extends Local {
   value: number
   unit: BodyUnit
   notes: string
-  source: 'manual' | 'csv'
+  source: 'manual' | 'csv' | 'withings'
+  withings_time?: number // unix seconds of the weigh-in (Withings only)
   deleted_at: string
 }
 

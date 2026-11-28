@@ -98,6 +98,36 @@ export async function latestUpdated(collection: string): Promise<string> {
 
 export { ClientResponseError }
 
+// ---- Withings (server routes in deploy/pocketbase/pb_hooks/withings.pb.js) ----
+
+export interface WithingsWeighIn {
+  time: number // unix seconds
+  weight: number | null // lb
+  fat: number | null // %
+}
+export interface WithingsStatus {
+  configured: boolean
+  connected: boolean
+  lastCheck: string
+  lastError: string
+  latest: WithingsWeighIn | null
+}
+export interface WithingsSyncResult {
+  added: number
+  updated: number
+  skipped: number
+  latest: WithingsWeighIn | null
+}
+
+// The server works out each weigh-in's day in the phone's time zone.
+const tz = () => new Date().getTimezoneOffset()
+
+export const withingsStatus = () => pb().send<WithingsStatus>('/api/withings/status', { query: { tz: tz() } })
+export const withingsStart = () =>
+  pb().send<{ url: string }>('/api/withings/start', { method: 'POST', body: { origin: window.location.origin, tz: tz() } })
+export const withingsSync = () => pb().send<WithingsSyncResult>('/api/withings/sync', { method: 'POST', body: { tz: tz() } })
+export const withingsDisconnect = () => pb().send('/api/withings/disconnect', { method: 'POST' })
+
 export async function countRecords(collection: string): Promise<number> {
   const r = await pb().collection(collection).getList(1, 1, { fields: 'id' })
   return r.totalItems

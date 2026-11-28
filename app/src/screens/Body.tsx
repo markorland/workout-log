@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import LineChart from '../components/LineChart'
 import MeasurementImport from '../components/MeasurementImport'
 import Photos from '../components/Photos'
+import { GetWeighInsRow } from '../components/Withings'
 import { allSeries, bodyParts, latestValues, measurementCsv, saveMeasurements, addCustomPart, type Entry } from '../lib/body'
 import { fmtDay } from '../lib/dates'
 import { today } from '../lib/db'
@@ -80,7 +81,8 @@ function MeasureForm() {
         <p className="muted small">Fill in what you measured; leave the rest blank. Gray numbers are your last values.</p>
         <div className="measure-list">
           {parts.map((p) => (
-            <div key={p.id} className="measure-row">
+            <Fragment key={p.id}>
+            <div className="measure-row">
               <span className="measure-label">{p.label}</span>
               <div className={p.has_side ? 'measure-inputs two' : 'measure-inputs'}>
                 {(p.has_side ? (['left', 'right'] as const) : ([''] as const)).map((side) => {
@@ -100,6 +102,8 @@ function MeasureForm() {
                 })}
               </div>
             </div>
+            {p.key === 'bodyweight' && <GetWeighInsRow />}
+            </Fragment>
           ))}
         </div>
         <label>

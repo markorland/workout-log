@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Workout Log: Withings</title>
+    <style>
+      body { font: 17px -apple-system, system-ui, sans-serif; margin: 3rem 1.5rem; max-width: 30rem; color: #222; }
+      @media (prefers-color-scheme: dark) { body { background: #000; color: #eee; } }
+    </style>
+  </head>
+  <body>
+    <h1>Connecting Withings…</h1>
+    <p id="msg">Sending you back to Workout Log.</p>
+    <script>
+      // Withings sends the browser here after sign-in (it needs a public
+      // address). This page only passes the sign-in on to the Workout Log server
+      // named in `state`; it stores nothing. The code is useless without the
+      // server's client secret and expires after 30 seconds.
+      ;(function () {
+        var params = new URLSearchParams(location.search)
+        var state = params.get('state') || ''
+        var cut = state.indexOf('~')
+        var origin = cut > 0 ? decodeURIComponent(state.slice(cut + 1)) : ''
+        var ok = /^(https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net|http:\/\/(10|192\.168|172\.(1[6-9]|2\d|3[01]))(\.\d{1,3}){1,3}(:\d+)?)$/
+        if (!ok.test(origin)) {
+          document.getElementById('msg').textContent =
+            "This link didn't come from Workout Log. Start again with Connect Withings in the app."
+          return
+        }
+        location.replace(origin + '/api/withings/callback' + location.search)
+      })()
+    </script>
+  </body>
+</html>
