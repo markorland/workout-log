@@ -78,7 +78,7 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - **Reset after a break:** Timeline → Main → **Back to Beginner's Cycle 1** moves to #1 but keeps the round. If you're halfway through Round 2, you stay in Round 2 and restart from Beginner's Cycle 1. "Set as current" also keeps the round.
 - **Tests:** stay outside the rounds; supplemental programs keep their own restart rounds.
 
-## Withings: get weight and body fat automatically
+## ✅ Done: Withings: get weight and body fat automatically
 
 **Problem.** Bodyweight and body fat are typed in by hand on the Body screen, or imported from a CSV. A Withings scale already measures both at every weigh-in.
 
@@ -104,6 +104,14 @@ RTF, RTF2 and RTF3 (Aug – Nov 2021, #37–60) already have percentages, even t
 - **No push from Withings.** Withings can notify a server instantly when you weigh in, but only at a URL it can reach over the internet. The server is only on Tailscale, so it checks on a schedule instead. A few hours' delay is fine for weight.
 
 **To confirm when building:** the measure type numbers, token lifetimes and rate limits against the current Withings API docs. Also check whether the hook needs outbound internet access opened from the NAS.
+
+**Status (Nov 28, 2026): done in v2.0.0.**
+
+- **Built as planned:** PocketBase hooks (`pb_hooks/withings.pb.js` and `withings_lib.js`) fetch weight (type 1) and fat ratio (type 6) and save them as Bodyweight (lb) and Body fat (%). The latest weigh-in of a day wins, and typed or imported values are never replaced.
+- **Redirect URL:** Withings needs a public address it can reach, so the registered URL is a small GitHub Pages page (`https://markorland.github.io/workout-log/withings/`, from `pages/withings/`). It passes the sign-in straight on to the private server. It's only needed when connecting, not for the regular checks.
+- **History:** the first check after connecting brings in only today. Older weigh-ins come from your CSV imports.
+- **Schedule:** every 30 minutes from 6 to 10 am (the phone's time zone) and every 4 hours the rest of the day. **Get weigh-ins** (Settings, and under Bodyweight on Body) checks right away.
+- **Setup:** see "Withings" in `deploy/pocketbase/README.md`. The NAS needed no extra network setup.
 
 ## In-app program builder and Duplicate
 
