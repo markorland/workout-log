@@ -7,7 +7,8 @@
 //   POST /api/withings/sync        check for new weigh-ins now (Get weigh-ins button)
 //   POST /api/withings/disconnect  forget the Withings tokens
 //
-// Plus a check every 4 hours.
+// Plus scheduled checks: every 30 minutes from 6 to 10 am (your time), every
+// 4 hours otherwise. The tick runs every 30 minutes; withings_lib decides.
 
 routerAdd("GET", "/api/withings/status", (e) => {
   const w = require(`${__hooks}/withings_lib.js`)
@@ -58,7 +59,7 @@ routerAdd("GET", "/api/withings/callback", (e) => {
     const r = w.finishSignIn($app, q.get("code"), q.get("state"))
     const n = r.added + r.updated
     const done = r.error
-      ? `Fetching weigh-ins didn't work yet (${esc(r.error)}); the server tries again every 4 hours, or tap Get weigh-ins in the app.`
+      ? `Fetching weigh-ins didn't work yet (${esc(r.error)}); the server tries again on its next scheduled check, or tap Get weigh-ins in the app.`
       : n ? `Imported today's weigh-in (${n} measurement${n === 1 ? "" : "s"}).` : "No weigh-in yet today; it will come in on the next check."
     return e.html(200, page("Withings connected", `${done} You can close this page and go back to the app.`))
   } catch (err) {
@@ -66,6 +67,6 @@ routerAdd("GET", "/api/withings/callback", (e) => {
   }
 })
 
-cronAdd("withings_sync", "17 */4 * * *", () => {
+cronAdd("withings_sync", "*/30 * * * *", () => {
   require(`${__hooks}/withings_lib.js`).scheduledSync($app)
 })

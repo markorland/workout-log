@@ -67,6 +67,7 @@ be checked against Settings → About:
   deserves it, e.g. 1.0.5 → 1.1.0 for a new feature, or 2.0.0 for a big
   change. The patch number goes back to 0.
 - 1.0.0 is v1: everything up to the About card (commit tagged `v1.0.0`).
+- 2.0.0 is v2: adds the Withings weight and body fat sync (tagged `v2.0.0`).
 
 ## Install on the iPhone
 

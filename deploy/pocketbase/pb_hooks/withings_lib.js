@@ -20,6 +20,12 @@ const FAT_RATIO = 6 // Withings measure type: fat ratio, %
 // HTTPS name, or its address on the home network.
 const ORIGIN_OK = /^(https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.ts\.net|http:\/\/(10|192\.168|172\.(1[6-9]|2\d|3[01]))(\.\d{1,3}){1,3}(:\d+)?)$/
 
+// Scheduled checks: every 30 minutes in the morning weigh-in window (local
+// time, start inclusive through the end hour on the dot), otherwise every 4 hours.
+const WINDOW_START_HOUR = 6
+const WINDOW_END_HOUR = 10
+const FALLBACK_EVERY_HOURS = 4
+
 const now = () => Math.floor(Date.now() / 1000)
 const round2 = (v) => Math.round(v * 100) / 100
 
@@ -281,9 +287,24 @@ function disconnect(app) {
   app.save(rec)
 }
 
-/** The scheduled check: quietly skip when Withings isn't connected. */
+/**
+ * Should the half-hourly tick run a check? nowMs is the time, tzOffsetMin the
+ * phone's offset (as from Date.getTimezoneOffset()).
+ */
+function isCheckTime(nowMs, tzOffsetMin) {
+  const local = new Date(nowMs - tzOffsetMin * 60000)
+  const h = local.getUTCHours()
+  const firstHalf = local.getUTCMinutes() < 30
+  const inWindow = (h >= WINDOW_START_HOUR && h < WINDOW_END_HOUR) || (h === WINDOW_END_HOUR && firstHalf)
+  return inWindow || (firstHalf && h % FALLBACK_EVERY_HOURS === 0)
+}
+
+/** The scheduled check: quietly skip when Withings isn't connected or it isn't time. */
 function scheduledSync(app) {
-  if (!configured() || !authRecord(app).getString("refresh_token")) return
+  if (!configured()) return
+  const rec = authRecord(app)
+  if (!rec.getString("refresh_token")) return
+  if (!isCheckTime(Date.now(), rec.getInt("tz_offset_min"))) return
   try {
     const r = sync(app)
     if (r.added || r.updated) console.log("withings: " + r.added + " new, " + r.updated + " updated")
@@ -292,4 +313,4 @@ function scheduledSync(app) {
   }
 }
 
-module.exports = { configured, startUrl, finishSignIn, sync, status, disconnect, scheduledSync, localDay, startOfToday }
+module.exports = { configured, startUrl, finishSignIn, sync, status, disconnect, scheduledSync, localDay, startOfToday, isCheckTime }

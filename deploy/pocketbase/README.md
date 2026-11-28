@@ -173,7 +173,8 @@ When a phase adds a migration file (Phase 6 added `1764300000_supplemental_progr
 
 ## Withings (weight and body fat)
 
-The server fetches weigh-ins from Withings every 4 hours, and whenever you tap
+The server fetches weigh-ins from Withings every 30 minutes from 6 to 10 am
+(your phone's time zone), every 4 hours the rest of the day, and whenever you tap
 **Get weigh-ins** in the app. They're saved as Bodyweight (lb) and Body fat (%).
 A value you type yourself for a day is never replaced. The code is in
 `pb_hooks/withings.pb.js` and `pb_hooks/withings_lib.js`.

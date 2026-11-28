@@ -128,7 +128,7 @@ export function WithingsCard() {
               </>
             )}
           </dl>
-          <p className="muted small">The server checks every 4 hours. Values you type yourself are never replaced.</p>
+          <p className="muted small">The server checks every 30 minutes from 6 to 10 am, and every 4 hours the rest of the day. Values you type yourself are never replaced.</p>
           <div className="row-actions">
             <button disabled={get.busy} onClick={() => void get.run()}>
               {get.busy ? 'Checking…' : 'Get weigh-ins'}
